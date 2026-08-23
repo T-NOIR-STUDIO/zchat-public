@@ -93,7 +93,7 @@ function renderMessages(chat) {
             }
         }
 
-        // Nút menu 3 chấm — luôn hiện (mờ), rõ hơn khi hover / touch
+        // Nút menu 3 chấm — neo theo bong bóng (không tính hàng Seen)
         const menuBtnHtml = `
                 <button type="button" class="btn-msg-menu absolute top-1/2 -translate-y-1/2 ${isMine ? "-left-9" : "-right-9"} flex h-7 w-7 items-center justify-center rounded-full opacity-70 hover:opacity-100 hover:bg-elevated2 transition-all z-10" style="color: #ffffff;" title="More">
                     <i data-lucide="more-horizontal" class="w-4 h-4"></i>
@@ -123,10 +123,12 @@ function renderMessages(chat) {
 
         wrap.innerHTML = `
         <div class="relative flex max-w-[72%] min-w-0 flex-col gap-1.5 ${isMine ? "items-end" : "items-start"}">
-          ${menuBtnHtml}
-          ${attachmentHtml}
-          ${replyThumbHtml}
-          ${bubble}
+          <div class="relative msg-bubble-row">
+            ${menuBtnHtml}
+            ${attachmentHtml}
+            ${replyThumbHtml}
+            ${bubble}
+          </div>
           ${meta}
         </div>`;
 
