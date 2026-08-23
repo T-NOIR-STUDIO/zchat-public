@@ -1,8 +1,5 @@
 /**
- * Z-Chat WebRTC 1-1 Video Call client
- * - Avatar thật khi gọi / tắt cam
- * - Bắt buộc TURN (iceTransportPolicy: "relay")
- * - Ít ICE server (tránh cảnh báo 5+ STUN/TURN)
+ * Z-Chat WebRTC 1-1 Video Call client (FIXED: Auto-hangup & Mobile Cam issue)
  */
 (function () {
     "use strict";
@@ -24,12 +21,12 @@
                 credential: METERED_PASS,
             },
             {
-                urls: "turns:standard.relay.metered.ca:443",
+                urls: "turns:standard.relay.metered.ca:443?transport=tcp",
                 username: METERED_USER,
                 credential: METERED_PASS,
             },
         ],
-        iceTransportPolicy: "relay",
+        // Bỏ iceTransportPolicy: "relay" cứng để tránh lỗi nghẽn trên Chrome Mobile
         bundlePolicy: "max-bundle",
         rtcpMuxPolicy: "require",
     };
@@ -47,9 +44,7 @@
     let camEnabled = true;
     let remoteIceCandidatesQueue = [];
 
-    function $(id) {
-        return document.getElementById(id);
-    }
+    function $(id) { return document.getElementById(id); }
 
     function icons() {
         if (window.lucide && typeof window.lucide.createIcons === "function") {
@@ -57,12 +52,8 @@
         }
     }
 
-    function show(el) {
-        if (el) el.classList.remove("hidden");
-    }
-    function hide(el) {
-        if (el) el.classList.add("hidden");
-    }
+    function show(el) { if (el) el.classList.remove("hidden"); }
+    function hide(el) { if (el) el.classList.add("hidden"); }
 
     function setStatus(text) {
         const el = $("zcCallStatus");
@@ -197,25 +188,31 @@
 
     async function getMedia(video) {
         if (localStream) return localStream;
-        localStream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-            video: video
-                ? {
-                      facingMode: "user",
-                      width: { ideal: 640, max: 640 },
-                      height: { ideal: 480, max: 480 },
-                      frameRate: { ideal: 20, max: 24 },
-                  }
-                : false,
-        });
-        const localVideo = $("zcLocalVideo");
-        if (localVideo) {
-            localVideo.srcObject = localStream;
-            localVideo.muted = true;
-            localVideo.playsInline = true;
-            localVideo.play().catch(() => {});
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({
+                audio: true,
+                video: video
+                    ? {
+                        facingMode: "user",
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        frameRate: { max: 24 },
+                    }
+                    : false,
+            });
+            const localVideo = $("zcLocalVideo");
+            if (localVideo) {
+                localVideo.srcObject = localStream;
+                localVideo.muted = true;
+                localVideo.setAttribute("playsinline", "true");
+                localVideo.setAttribute("autoplay", "true");
+                await localVideo.play().catch(() => {});
+            }
+            return localStream;
+        } catch (e) {
+            console.error("Lỗi cấp quyền Media:", e);
+            throw e;
         }
-        return localStream;
     }
 
     function stopMedia() {
@@ -248,7 +245,9 @@
         while (remoteIceCandidatesQueue.length > 0) {
             const cand = remoteIceCandidatesQueue.shift();
             try {
-                if (pc) await pc.addIceCandidate(new RTCIceCandidate(cand));
+                if (pc && pc.remoteDescription) {
+                    await pc.addIceCandidate(new RTCIceCandidate(cand));
+                }
             } catch (err) {
                 console.warn("[ZChatCall] addIceCandidate error:", err);
             }
@@ -257,9 +256,7 @@
 
     function createPeerConnection() {
         if (pc) {
-            try {
-                pc.close();
-            } catch (_) {}
+            try { pc.close(); } catch (_) {}
         }
         remoteIceCandidatesQueue = [];
         pc = new RTCPeerConnection(ICE_SERVERS);
@@ -274,35 +271,21 @@
             }
         };
 
-        pc.oniceconnectionstatechange = () => {
-            const st = pc && pc.iceConnectionState;
-            console.log("[ZChatCall] iceConnectionState:", st);
-            if (st === "failed") {
-                console.warn("[ZChatCall] ICE failed — check TURN credentials / quota");
-            }
-        };
-
         pc.ontrack = (ev) => {
             if (!remoteStream) remoteStream = new MediaStream();
             remoteStream.addTrack(ev.track);
             const remoteVideo = $("zcRemoteVideo");
             if (remoteVideo) {
                 remoteVideo.srcObject = remoteStream;
-                remoteVideo.playsInline = true;
+                remoteVideo.setAttribute("playsinline", "true");
+                remoteVideo.setAttribute("autoplay", "true");
                 remoteVideo.play().catch(() => {});
             }
             if (ev.track && ev.track.kind === "video") {
-                const syncRemoteCam = () => {
-                    const videoOn =
-                        ev.track.enabled &&
-                        ev.track.readyState === "live" &&
-                        !ev.track.muted;
-                    setRemoteCamAvatarVisible(!videoOn);
-                };
+                setRemoteCamAvatarVisible(false);
                 ev.track.onmute = () => setRemoteCamAvatarVisible(true);
                 ev.track.onunmute = () => setRemoteCamAvatarVisible(false);
                 ev.track.onended = () => setRemoteCamAvatarVisible(true);
-                syncRemoteCam();
             }
         };
 
@@ -377,9 +360,7 @@
         remoteIceCandidatesQueue = [];
 
         if (pc) {
-            try {
-                pc.close();
-            } catch (_) {}
+            try { pc.close(); } catch (_) {}
             pc = null;
         }
         stopMedia();
@@ -407,11 +388,9 @@
             alert("Please sign in first.");
             return;
         }
-        if (callActive) return;
-        if (target.toLowerCase() === myUsername.toLowerCase()) {
-            alert("You cannot call yourself.");
-            return;
-        }
+        
+        // Đảm bảo dọn dẹp sạch state trước khi thực hiện cuộc gọi mới
+        cleanupCall(false);
 
         peerUsername = target;
         isCaller = true;
@@ -542,10 +521,7 @@
     }
 
     function connectSocket() {
-        if (typeof io === "undefined") {
-            console.error("[ZChatCall] socket.io client chưa load (cdn).");
-            return;
-        }
+        if (typeof io === "undefined") return;
         if (socket) return;
 
         socket = io(SIGNAL_URL, {
@@ -555,25 +531,17 @@
         });
 
         socket.on("connect", () => {
-            console.log("[ZChatCall] socket connected", SIGNAL_URL);
             if (myUsername) {
                 socket.emit("register", { username: myUsername });
             }
         });
 
-        socket.on("registered", (payload) => {
-            console.log("[ZChatCall] registered", payload);
-        });
-
         socket.on("incoming_call", async (payload) => {
-            if (callActive) {
-                socket.emit("end_call", {
-                    to: payload.from,
-                    from: myUsername,
-                    reason: "reject",
-                });
-                return;
+            // FIX LỖI MẤT POPUP: Nếu đang dính cuộc gọi cũ bẩn state thì dọn trước
+            if (callActive && peerUsername !== payload.from) {
+                cleanupCall(false);
             }
+            
             peerUsername = payload.from;
             pendingOffer = payload.offer;
             callActive = true;
@@ -599,16 +567,12 @@
 
         socket.on("ice_candidate", async (payload) => {
             if (!payload || !payload.candidate) return;
-            if (!pc) {
+            if (!pc || !pc.remoteDescription) {
                 remoteIceCandidatesQueue.push(payload.candidate);
                 return;
             }
             try {
-                if (pc.remoteDescription && pc.remoteDescription.type) {
-                    await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
-                } else {
-                    remoteIceCandidatesQueue.push(payload.candidate);
-                }
+                await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
             } catch (err) {
                 console.warn("[ZChatCall] addIceCandidate:", err);
             }
@@ -622,16 +586,6 @@
             if (!payload) return;
             if (payload.video === false) setRemoteCamAvatarVisible(true);
             else if (payload.video === true) setRemoteCamAvatarVisible(false);
-        });
-
-        socket.on("call_error", (payload) => {
-            console.warn("[ZChatCall] call_error", payload);
-            const msg =
-                payload && payload.message === "user_offline"
-                    ? "User is offline."
-                    : (payload && payload.message) || "Lỗi cuộc gọi";
-            alert(msg);
-            cleanupCall(false);
         });
 
         socket.on("disconnect", () => {
