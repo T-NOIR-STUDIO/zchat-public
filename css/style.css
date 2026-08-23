@@ -152,20 +152,35 @@ textarea { field-sizing: content; }
     color: #ffffff !important;
 }
 
-/* Attach (+) & Send (↑): icon to hơn, nét vuông — nút vẫn tròn */
+/* Attach (+) & Send (↑): nút to khớp text box 44px, icon nét vuông */
+#attachBtn {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    border-radius: 9999px !important;
+}
 #attachBtn svg,
 #attachBtn i {
-    width: 22px !important;
-    height: 22px !important;
+    width: 24px !important;
+    height: 24px !important;
     stroke-width: 2.5 !important;
     stroke-linecap: square !important;
     stroke-linejoin: miter !important;
 }
+#sendBtn {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    border-radius: 9999px !important;
+    margin-bottom: 0 !important;
+}
 #sendBtn svg,
 #sendBtn i,
 #sendIcon {
-    width: 20px !important;
-    height: 20px !important;
+    width: 22px !important;
+    height: 22px !important;
     stroke-width: 2.5 !important;
     stroke-linecap: square !important;
     stroke-linejoin: miter !important;
@@ -330,28 +345,28 @@ select.custom-select {
     vertical-align: baseline;
 }
 
-/* Composer: cao bằng nút + (40px), pill */
+/* Composer: cao hơn chút, pill max radius; + và Send khớp */
 #composerShell {
-    height: 40px;
-    min-height: 40px;
+    height: 44px;
+    min-height: 44px;
     border-radius: 9999px !important;
     box-sizing: border-box;
     align-items: center;
 }
 #composerShell.is-multiline {
     height: auto;
-    min-height: 44px;
+    min-height: 48px;
     align-items: flex-end;
-    padding-top: 6px;
-    padding-bottom: 6px;
-    border-radius: 22px !important;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    border-radius: 9999px !important;
 }
 #messageInput {
     display: block;
     width: 100%;
-    height: 28px;
-    min-height: 28px;
-    line-height: 28px;
+    height: 30px;
+    min-height: 30px;
+    line-height: 30px;
     padding: 0 !important;
     margin: 0;
     overflow-y: hidden;
@@ -363,10 +378,10 @@ select.custom-select {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     word-break: break-word;
-    font-size: 13px;
+    font-size: 14px;
 }
 #messageInput::placeholder {
-    font-size: 13px;
+    font-size: 14px;
 }
 #composerShell.is-multiline #messageInput {
     /* Height set from JS */
