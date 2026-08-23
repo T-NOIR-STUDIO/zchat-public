@@ -1,8 +1,8 @@
 /**
  * Z-Chat WebRTC 1-1 Video Call client
- * - Fixed: Black screen on TURN server relay
- * - Fixed: Auto call disconnection bug
- * - Optimized candidate routing
+ * - Fix WebRTC ICE connection between Chrome & Firefox
+ * - Auto sync call termination (hangup / close tab / network drop)
+ * - Fix Cloudflare __cf_bm cookie rejection on avatars
  */
 (function () {
     "use strict";
@@ -15,18 +15,16 @@
     const METERED_USER = window.ZCHAT_TURN_USER || "2bcc0de831c3742cc7c4c4aa";
     const METERED_PASS = window.ZCHAT_TURN_PASS || "fxTk7UPyGXEeDjN1";
 
-    // Cấu hình TURN/STUN chuẩn hóa không bị nghẽn port
     const ICE_SERVERS = {
         iceServers: [
             { urls: "stun:stun.l.google.com:19302" },
             { urls: "stun:stun1.l.google.com:19302" },
             {
-                urls: "turn:standard.relay.metered.ca:80?transport=udp",
-                username: METERED_USER,
-                credential: METERED_PASS,
-            },
-            {
-                urls: "turn:standard.relay.metered.ca:443?transport=tcp",
+                urls: [
+                    "turn:standard.relay.metered.ca:80?transport=udp",
+                    "turn:standard.relay.metered.ca:80?transport=tcp",
+                    "turn:standard.relay.metered.ca:443?transport=tcp"
+                ],
                 username: METERED_USER,
                 credential: METERED_PASS,
             },
@@ -206,7 +204,7 @@
                         facingMode: "user",
                         width: { ideal: 640 },
                         height: { ideal: 480 },
-                        frameRate: { max: 20 },
+                        frameRate: { max: 24 },
                     }
                     : false,
             });
@@ -245,7 +243,7 @@
                 if (!params.encodings || !params.encodings.length) {
                     params.encodings = [{}];
                 }
-                params.encodings[0].maxBitrate = 350000;
+                params.encodings[0].maxBitrate = 400000;
                 sender.setParameters(params).catch(() => {});
             }
         });
@@ -282,13 +280,15 @@
             }
         };
 
-        // Bỏ việc tắt ngắt kết nối đột ngột ở trạng thái 'disconnected'
         pc.oniceconnectionstatechange = () => {
             const st = pc && pc.iceConnectionState;
             console.log("[ZChatCall] iceConnectionState:", st);
-            if (st === "failed") {
-                console.warn("[ZChatCall] ICE Connection failed.");
-                if (callActive) cleanupCall(false);
+            // SỬA ĐỔI: Tắt ngay lập tức khi ICE connection bị ngắt hẳn
+            if (st === "failed" || st === "disconnected" || st === "closed") {
+                console.warn("[ZChatCall] ICE disconnect detected.");
+                if (callActive) {
+                    cleanupCall(false);
+                }
             }
         };
 
@@ -300,14 +300,7 @@
                 remoteVideo.srcObject = remoteStream;
                 remoteVideo.setAttribute("playsinline", "true");
                 remoteVideo.setAttribute("autoplay", "true");
-                
-                // Ép tự động Play tránh lỗi đen màn hình do policy browser
-                const playPromise = remoteVideo.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch((e) => {
-                        console.warn("[ZChatCall] Auto-play was prevented:", e);
-                    });
-                }
+                remoteVideo.play().catch(() => {});
             }
             if (ev.track && ev.track.kind === "video") {
                 setRemoteCamAvatarVisible(false);
@@ -323,8 +316,8 @@
             if (st === "connected") {
                 setStatus("Connected");
                 showInCallUI();
-            } else if (st === "failed" || st === "closed") {
-                console.warn("[ZChatCall] Connection closed.");
+            } else if (st === "failed" || st === "disconnected" || st === "closed") {
+                console.warn("[ZChatCall] Connection lost or closed.");
                 if (callActive) cleanupCall(false);
             }
         };
@@ -382,8 +375,9 @@
     }
 
     function cleanupCall(notifyPeer) {
-        const peer = peerUsername;
+        const peer = peerUsername; // Lưu lại peer trước khi clear
 
+        // SỬA ĐỔI: Phát sự kiện báo đối phương TẮT CALL trước khi xóa peerUsername
         if (notifyPeer && peer && socket) {
             socket.emit("end_call", {
                 to: peer,
@@ -706,6 +700,7 @@
         };
     }
 
+    // SỬA ĐỔI: Dùng sendBeacon / disconnect socket tức thì khi tắt tab
     window.addEventListener("beforeunload", () => {
         if (callActive && peerUsername && socket) {
             socket.emit("end_call", {
