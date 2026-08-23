@@ -37,7 +37,13 @@ function renderMessages(chat) {
 
         const wrap = document.createElement("div");
         wrap.id = `msg-${msg.id}`;
-        wrap.className = (showTail ? "mb-5 " : "mb-1 ") + "group relative flex w-full " + (isMine ? "justify-end" : "justify-start");
+        // Khoảng cách lớn hơn khi đổi người gửi (A ↔ B); tin cùng người vẫn sát
+        const senderChanged = !!(prev && prev.senderId !== msg.senderId);
+        wrap.className =
+            (showTail ? "mb-6 " : "mb-1 ") +
+            (senderChanged ? "mt-3 " : "") +
+            "group relative flex w-full " +
+            (isMine ? "justify-end" : "justify-start");
 
         let attachmentHtml = "";
         if (msg.attachment) {
