@@ -3,6 +3,7 @@
  * - Fix WebRTC ICE connection between Chrome & Firefox
  * - Auto sync call termination (hangup / close tab / network drop)
  * - Fix Cloudflare __cf_bm cookie rejection on avatars
+ * - Fix TURN Server failure across different networks
  */
 (function () {
     "use strict";
@@ -15,32 +16,30 @@
     const METERED_USER = window.ZCHAT_TURN_USER || "2bcc0de831c3742cc7c4c4aa";
     const METERED_PASS = window.ZCHAT_TURN_PASS || "fxTk7UPyGXEeDjN1";
 
+    // CẤU HÌNH SỬA: Tách riêng từng object URL cho TURN Server
     const ICE_SERVERS = {
         iceServers: [
             { urls: "stun:stun.l.google.com:19302" },
             { urls: "stun:stun1.l.google.com:19302" },
             {
-                urls: [
-                    "turn:standard.relay.metered.ca:80?transport=udp",
-                    "turn:standard.relay.metered.ca:80?transport=tcp",
-                    "turn:standard.relay.metered.ca:443?transport=tcp",
-                    // turns: (TURN qua TLS) — bắt buộc phải có để vượt qua các
-                    // mạng công ty/trường học/di động chỉ cho phép traffic
-                    // HTTPS (443/TLS) đi ra ngoài, chặn hết UDP lẫn TCP thường.
-                    "turns:standard.relay.metered.ca:443?transport=tcp"
-                ],
+                urls: "turn:standard.relay.metered.ca:80",
+                username: METERED_USER,
+                credential: METERED_PASS,
+            },
+            {
+                urls: "turn:standard.relay.metered.ca:80?transport=tcp",
+                username: METERED_USER,
+                credential: METERED_PASS,
+            },
+            {
+                urls: "turns:standard.relay.metered.ca:443?transport=tcp",
                 username: METERED_USER,
                 credential: METERED_PASS,
             },
         ],
         bundlePolicy: "max-bundle",
         rtcpMuxPolicy: "require",
-        // DEBUG: đổi thành "relay" tạm thời để ép TOÀN BỘ traffic đi qua TURN,
-        // không cho dùng STUN/kết nối thẳng. Nếu gọi vẫn fail y hệt kể cả
-        // 2 máy cùng mạng LAN -> chứng minh chắc chắn lỗi nằm ở TURN
-        // (sai username/password, credential hết hạn, hoặc server chặn).
-        // Nếu cùng LAN vẫn fail nhưng để "all" thì lại chạy -> đúng là do TURN.
-        iceTransportPolicy: window.ZCHAT_FORCE_TURN ? "relay" : "all",
+        iceCandidatePoolSize: 10,
     };
 
     let socket = null;
@@ -290,41 +289,12 @@
             }
         };
 
-        // QUAN TRỌNG: đây là chỗ duy nhất cho biết CHÍNH XÁC vì sao TURN fail.
-        // errorCode 401 = sai username/credential (hết hạn hoặc sai)
-        // errorCode 403 = bị server TURN từ chối (quota hết, IP bị chặn...)
-        // errorCode 701 = không kết nối được tới server TURN (sai host/port, mạng chặn)
-        pc.onicecandidateerror = (ev) => {
-            console.error(
-                "[ZChatCall] ICE candidate error:",
-                "code=" + ev.errorCode,
-                "text=" + ev.errorText,
-                "url=" + ev.url
-            );
-        };
-
+        // SỬA HÀM NÀY: Bỏ ngắt cuộc gọi khi bị 'disconnected'
         pc.oniceconnectionstatechange = () => {
             const st = pc && pc.iceConnectionState;
             console.log("[ZChatCall] iceConnectionState:", st);
-            // SỬA ĐỔI: Tắt ngay lập tức khi ICE connection bị ngắt hẳn
-            if (st === "failed" || st === "disconnected" || st === "closed") {
+            if (st === "failed") {
                 console.warn("[ZChatCall] ICE disconnect detected.");
-                if (st === "failed" && pc && typeof pc.getStats === "function") {
-                    // In ra loại candidate-pair đã thử (relay/srflx/host) để biết
-                    // TURN có được thử tới hay không, và lý do state cuối cùng.
-                    pc.getStats(null).then((stats) => {
-                        stats.forEach((report) => {
-                            if (report.type === "candidate-pair") {
-                                console.warn("[ZChatCall] candidate-pair:", {
-                                    state: report.state,
-                                    nominated: report.nominated,
-                                    localCandidateId: report.localCandidateId,
-                                    remoteCandidateId: report.remoteCandidateId,
-                                });
-                            }
-                        });
-                    }).catch(() => {});
-                }
                 if (callActive) {
                     cleanupCall(false);
                 }
@@ -339,7 +309,12 @@
                 remoteVideo.srcObject = remoteStream;
                 remoteVideo.setAttribute("playsinline", "true");
                 remoteVideo.setAttribute("autoplay", "true");
-                remoteVideo.play().catch(() => {});
+                const playPromise = remoteVideo.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch((err) => {
+                        console.warn("[ZChatCall] Remote autoplay was prevented:", err);
+                    });
+                }
             }
             if (ev.track && ev.track.kind === "video") {
                 setRemoteCamAvatarVisible(false);
@@ -349,13 +324,14 @@
             }
         };
 
+        // SỬA HÀM NÀY: Bỏ ngắt cuộc gọi khi 'disconnected'
         pc.onconnectionstatechange = () => {
             const st = pc && pc.connectionState;
             console.log("[ZChatCall] connectionState:", st);
             if (st === "connected") {
                 setStatus("Connected");
                 showInCallUI();
-            } else if (st === "failed" || st === "disconnected" || st === "closed") {
+            } else if (st === "failed" || st === "closed") {
                 console.warn("[ZChatCall] Connection lost or closed.");
                 if (callActive) cleanupCall(false);
             }
@@ -414,9 +390,8 @@
     }
 
     function cleanupCall(notifyPeer) {
-        const peer = peerUsername; // Lưu lại peer trước khi clear
+        const peer = peerUsername;
 
-        // SỬA ĐỔI: Phát sự kiện báo đối phương TẮT CALL trước khi xóa peerUsername
         if (notifyPeer && peer && socket) {
             socket.emit("end_call", {
                 to: peer,
@@ -739,7 +714,6 @@
         };
     }
 
-    // SỬA ĐỔI: Dùng sendBeacon / disconnect socket tức thì khi tắt tab
     window.addEventListener("beforeunload", () => {
         if (callActive && peerUsername && socket) {
             socket.emit("end_call", {
