@@ -316,6 +316,20 @@ function ensureSavedMessagesChat() {
     p.avatarEmoji = localStorage.getItem("zchat_avatar_emoji") || p.avatarEmoji || null;
     p.avatarUrl = localStorage.getItem("zchat_avatar_url") || p.avatarUrl || null;
 
+    // Tick xanh trên chat tự nhắn: lấy is_verified từ server (không đổi tên)
+    if (displayName && typeof fetchAvatarForUsername === "function") {
+        fetchAvatarForUsername(displayName).then((row) => {
+            if (!row || !savedChat || !savedChat.participant) return;
+            applyAvatarFields(savedChat.participant, row);
+            savedChat.participant.isSelfNotes = true;
+            savedChat.participant.name = displayName;
+            if (typeof renderChatList === "function") renderChatList();
+            if (state.activeChatId === savedChat.id && typeof renderActiveChat === "function") {
+                renderActiveChat();
+            }
+        }).catch(() => {});
+    }
+
     if (!state.activeChatId) state.activeChatId = savedChatId;
     return savedChatId;
 }
