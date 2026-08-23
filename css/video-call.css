@@ -1,0 +1,18 @@
+/* ============================================================
+ * 08-video-call.css
+ * Style cho giao diện gọi video (call modal, avatar vòng tròn khi gọi).
+ * ============================================================ */
+/* ============ VIDEO CALL ============ */
+.zc-call-btn-off {
+    background: #ef4444 !important;
+}
+#zcCallModal:not(.hidden) {
+    animation: fade-in .18s ease-out;
+}
+#zcLocalVideo {
+    z-index: 5;
+}
+.zc-call-avatar-circle {
+    border: 2px solid #6b7280 !important;
+    box-sizing: border-box;
+}

@@ -1,0 +1,103 @@
+/* ============================================================
+ * 13-header-buttons.css
+ * Nút Video call / Search / Info / Back trên header đoạn chat (kiểu kính mờ - glassmorphism), có override riêng cho light theme.
+ * ============================================================ */
+/* Call / search / info — mọi màn hình */
+#activeChat > header button[aria-label="Video call"],
+#searchInChatBtn,
+#openInfoBtn {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 9999px !important;
+    background: rgba(58, 58, 60, 0.55) !important;
+    border: 0.5px solid rgba(255, 255, 255, 0.14) !important;
+    box-shadow:
+            inset 0 0.5px 0 rgba(255, 255, 255, 0.2),
+            0 2px 8px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    color: rgba(255, 255, 255, 0.95) !important;
+    transition: transform 0.12s ease, background 0.12s ease;
+}
+
+/* Back — CHỈ mobile (< 768px). PC + iPad ẩn */
+#openSidebarBtn {
+    display: none !important;
+}
+@media (max-width: 767.98px) {
+    #openSidebarBtn {
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        min-height: 36px !important;
+        padding: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 9999px !important;
+        background: rgba(58, 58, 60, 0.55) !important;
+        border: 0.5px solid rgba(255, 255, 255, 0.14) !important;
+        box-shadow:
+                inset 0 0.5px 0 rgba(255, 255, 255, 0.2),
+                0 2px 8px rgba(0, 0, 0, 0.25);
+        backdrop-filter: blur(18px) saturate(140%);
+        -webkit-backdrop-filter: blur(18px) saturate(140%);
+        color: rgba(255, 255, 255, 0.95) !important;
+        transition: transform 0.12s ease, background 0.12s ease;
+    }
+    #openSidebarBtn svg {
+        display: block;
+        margin: 0;
+        width: 20px !important;
+        height: 20px !important;
+        stroke-linecap: square !important;
+        stroke-linejoin: miter !important;
+        stroke-width: 2.5 !important;
+        transform: translateX(-1px);
+    }
+    #openSidebarBtn:active {
+        transform: scale(0.94);
+    }
+}
+
+#activeChat > header button[aria-label="Video call"]:active,
+#searchInChatBtn:active,
+#openInfoBtn:active {
+    transform: scale(0.94);
+}
+
+#activeChat > header button[aria-label="Video call"] svg,
+#searchInChatBtn svg,
+#openInfoBtn svg {
+    display: block;
+    margin: 0;
+    width: 20px !important;
+    height: 20px !important;
+}
+
+[data-theme="light"] #activeChat > header button[aria-label="Video call"],
+[data-theme="light"] #searchInChatBtn,
+[data-theme="light"] #openInfoBtn {
+    background: rgba(255, 255, 255, 0.55) !important;
+    border: 0.5px solid rgba(0, 0, 0, 0.08) !important;
+    color: rgba(0, 0, 0, 0.88) !important;
+    box-shadow:
+            inset 0 0.5px 0 rgba(255, 255, 255, 0.9),
+            0 2px 8px rgba(0, 0, 0, 0.08);
+}
+@media (max-width: 767.98px) {
+    [data-theme="light"] #openSidebarBtn {
+        background: rgba(255, 255, 255, 0.55) !important;
+        border: 0.5px solid rgba(0, 0, 0, 0.08) !important;
+        color: rgba(0, 0, 0, 0.88) !important;
+        box-shadow:
+                inset 0 0.5px 0 rgba(255, 255, 255, 0.9),
+                0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+}

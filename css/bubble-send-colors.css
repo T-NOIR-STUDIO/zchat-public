@@ -1,0 +1,20 @@
+/* ============================================================
+ * 04-bubble-send-colors.css
+ * Màu bong bóng chat của mình (xanh dương) + màu nút Send.
+ * ============================================================ */
+/* Bong bóng chat của mình: xanh + chữ trắng (dark/light + ô reply bên trong) */
+#messageFeed .justify-end .rounded-bubble {
+    background-color: #1b98e0 !important;
+    color: #ffffff !important;
+}
+#messageFeed .justify-end .rounded-bubble .msg-reply-quote,
+#messageFeed .justify-end .rounded-bubble .msg-reply-quote * {
+    color: #ffffff !important;
+    border-left-color: rgba(255, 255, 255, 0.55) !important;
+}
+
+/* Nút Send: nền xanh dương, icon trắng */
+#sendBtn {
+    background-color: #1b98e0 !important;
+    color: #ffffff !important;
+}

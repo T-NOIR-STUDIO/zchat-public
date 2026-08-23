@@ -1,0 +1,48 @@
+/* ============================================================
+ * 02-toast-screenshot.css
+ * Toast thông báo (#zchatToast), style chặn chụp màn hình, công tắc Block Screenshots.
+ * ============================================================ */
+/* Screenshot Protection Overlay Style */
+.screenshot-protected {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+}
+
+/* ÉP CÔNG TẮC BLOCK SCREENSHOTS SANG MÀU XANH DƯƠNG CHUẨN KHI BẬT */
+#blockScreenshotsToggle:checked + div {
+    background-color: #1b98e0 !important;
+}
+
+/* Custom toast – no browser alert */
+#zchatToast {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-16px);
+    z-index: 9999;
+    max-width: min(92vw, 380px);
+    padding: 14px 20px;
+    border-radius: 16px;
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.45;
+    text-align: center;
+    box-shadow: 0 16px 48px rgba(0,0,0,.4);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s ease, transform .25s ease;
+    background: var(--elevated2);
+    color: var(--ink);
+    border: 1px solid var(--transparent-border);
+    backdrop-filter: blur(14px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+#zchatToast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+}
+#zchatToast .toast-icon { flex-shrink: 0; color: #f59e0b; }

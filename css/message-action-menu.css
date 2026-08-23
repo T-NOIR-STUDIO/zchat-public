@@ -1,0 +1,87 @@
+/* ============================================================
+ * 06-message-action-menu.css
+ * Menu 3 chấm trên tin nhắn, khối trích dẫn Reply (bản text), quy tắc word-wrap cho bong bóng chat, hiệu ứng highlight/shake khi nhấn vào reply.
+ * ============================================================ */
+/* ============ MESSAGE ACTION MENU (3 chấm / long-press) ============ */
+.msg-bubble-pressable { transition: transform .12s ease, opacity .12s ease; }
+.msg-bubble-pressable.is-pressing { transform: scale(0.97); opacity: 0.85; }
+
+.msg-action-menu {
+    position: fixed;
+    z-index: 200;
+    min-width: 200px;
+    border-radius: 16px;
+    padding: 6px;
+    box-shadow: 0 16px 48px rgba(0,0,0,.35);
+    background-color: var(--elevated2);
+    border: 1px solid var(--transparent-border);
+}
+.msg-action-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    transition: background-color .12s ease;
+    text-align: left;
+}
+.msg-action-item:hover { background-color: var(--surface); }
+.msg-action-item.danger { color: #ef4444; }
+.msg-action-item .msg-action-icon { width: 15px; height: 15px; opacity: .75; flex-shrink: 0; }
+
+.msg-reply-quote {
+    border-left: 3px solid var(--transparent-border);
+    background-color: rgba(127,127,127,0.12);
+    border-radius: 8px;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: background-color .12s ease;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+}
+.msg-reply-quote:hover { background-color: rgba(127,127,127,0.2); }
+.msg-reply-quote .msg-reply-preview {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Bubble tin dài: xuống dòng, không mất chữ / không tràn ngang */
+#messageFeed .msg-bubble-pressable {
+    max-width: 100%;
+    min-width: 0;
+}
+#messageFeed .rounded-bubble {
+    max-width: 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: pre-wrap;
+}
+
+.msg-highlight-flash {
+    animation: msg-highlight-flash 1.1s ease;
+}
+@keyframes msg-highlight-flash {
+    0% { background-color: rgba(16,185,129,0.25); }
+    100% { background-color: transparent; }
+}
+
+/* Lắc trái-phải khi bấm vào tin reply */
+.msg-reply-shake {
+    animation: msg-reply-shake 0.55s ease;
+}
+@keyframes msg-reply-shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(5px); }
+}

@@ -1,0 +1,22 @@
+/* ============================================================
+ * 03-disappearing-menu.css
+ * Dropdown chọn thời gian tự xoá tin nhắn (Disappearing Message).
+ * ============================================================ */
+/* Modern disappearing dropdown */
+#disappearingMenuPopup {
+    min-width: 220px;
+}
+.disappearing-option { letter-spacing: 0.01em; }
+.disappearing-option:hover { background-color: var(--surface) !important; }
+.disappearing-option.is-selected {
+    background-color: rgba(27, 152, 224, 0.12);
+    color: #1b98e0 !important;
+}
+.disappearing-option.is-selected .opt-icon-badge {
+    background-color: rgba(27, 152, 224, 0.18) !important;
+}
+.disappearing-option.is-selected .opt-icon-badge svg,
+.disappearing-option.is-selected .opt-icon-badge i {
+    color: #1b98e0 !important;
+    opacity: 1 !important;
+}

@@ -1,0 +1,76 @@
+/* ============================================================
+ * 01-base-theme.css
+ * Font chữ, reset html/body, biến CSS theme sáng/tối (--canvas, --ink, --hairline...), scrollbar mỏng, focus-visible, animation dùng chung (typing-dot, fade-in). LOAD ĐẦU TIÊN — mọi file khác đều dùng biến theme khai báo ở đây.
+ * ============================================================ */
+/* Instrument Sans — bubble text + user names */
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap");
+
+#messageFeed .rounded-bubble,
+#messageFeed .msg-reply-quote,
+#messageFeed .msg-reply-image-name,
+#messageFeed .msg-reply-preview,
+.verified-name,
+#activeChat header .verified-name,
+#activeChat header h1,
+#activeChat header h2,
+#chatList .font-semibold,
+#chatList .font-medium {
+    font-family: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+/*index.html*/
+html, body { height: 100%; }
+body { -webkit-font-smoothing: antialiased; }
+
+:root, [data-theme="dark"] {
+    --canvas: #000000;
+    --surface: #0A0A0A;
+    --elevated: #161616;
+    --elevated2: #1F1F1F;
+    --hairline: #242424;
+    --ink: #FFFFFF;
+    --muted: #A3A3A3;
+    --faint: #666666;
+    --online: #31D07C;
+    --scrollbar-thumb: #242424;
+    --avatar-text: #FFFFFF;
+    --transparent-border: rgba(255, 255, 255, 0.12);
+}
+[data-theme="light"] {
+    --canvas: #FFFFFF;
+    --surface: #F4F4F5;
+    --elevated: #E4E4E7;
+    --elevated2: #D4D4D8;
+    --hairline: #E4E4E7;
+    --ink: #09090B;
+    --muted: #52525B;
+    --faint: #71717A;
+    --online: #16A34A;
+    --scrollbar-thumb: #D4D4D8;
+    --avatar-text: #FFFFFF;
+    --transparent-border: rgba(0, 0, 0, 0.12);
+}
+
+body { background-color: var(--canvas); color: var(--ink); transition: background-color .15s ease, color .15s ease; }
+
+.scrollbar-thin::-webkit-scrollbar { width: 6px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background-color: var(--scrollbar-thumb); border-radius: 999px; }
+.scrollbar-thin { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) transparent; }
+
+textarea { field-sizing: content; }
+
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
+
+.typing-dot { animation: typing-dot 1.2s ease-in-out infinite; }
+.typing-dot:nth-child(2) { animation-delay: .15s; }
+.typing-dot:nth-child(3) { animation-delay: .3s; }
+@keyframes typing-dot {
+    0%, 60%, 100% { transform: translateY(0); opacity: .4; }
+    30% { transform: translateY(-3px); opacity: 1; }
+}
+
+.fade-in { animation: fade-in .18s ease-out; }
+@keyframes fade-in {
+    0% { opacity: 0; transform: translateY(4px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
