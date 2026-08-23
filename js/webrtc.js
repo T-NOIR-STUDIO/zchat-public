@@ -1,7 +1,8 @@
 /**
  * Z-Chat WebRTC 1-1 Video Call client
- * - Fixed Cloudflare __cf_bm cookie rejection on avatars
- * - Fixed ICE failure & connection dropped issues between PC & Mobile
+ * - Fix WebRTC ICE connection between Chrome & Firefox
+ * - Auto sync call termination (hangup / close tab / network drop)
+ * - Fix Cloudflare __cf_bm cookie rejection on avatars
  */
 (function () {
     "use strict";
@@ -17,14 +18,13 @@
     const ICE_SERVERS = {
         iceServers: [
             { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:stun.relay.metered.ca:80" },
+            { urls: "stun:stun1.l.google.com:19302" },
             {
-                urls: "turn:standard.relay.metered.ca:80",
-                username: METERED_USER,
-                credential: METERED_PASS,
-            },
-            {
-                urls: "turn:standard.relay.metered.ca:443?transport=tcp",
+                urls: [
+                    "turn:standard.relay.metered.ca:80?transport=udp",
+                    "turn:standard.relay.metered.ca:80?transport=tcp",
+                    "turn:standard.relay.metered.ca:443?transport=tcp"
+                ],
                 username: METERED_USER,
                 credential: METERED_PASS,
             },
@@ -250,12 +250,11 @@
     }
 
     async function processQueuedIceCandidates() {
+        if (!pc || !pc.remoteDescription) return;
         while (remoteIceCandidatesQueue.length > 0) {
             const cand = remoteIceCandidatesQueue.shift();
             try {
-                if (pc && pc.remoteDescription && pc.remoteDescription.type) {
-                    await pc.addIceCandidate(new RTCIceCandidate(cand));
-                }
+                await pc.addIceCandidate(new RTCIceCandidate(cand));
             } catch (err) {
                 console.warn("[ZChatCall] addIceCandidate error:", err);
             }
@@ -284,8 +283,15 @@
         pc.oniceconnectionstatechange = () => {
             const st = pc && pc.iceConnectionState;
             console.log("[ZChatCall] iceConnectionState:", st);
-            if (st === "failed") {
-                console.warn("[ZChatCall] ICE failed — checking fallback options");
+            if (st === "failed" || st === "disconnected") {
+                console.warn("[ZChatCall] ICE disconnect detected.");
+                if (callActive) {
+                    setTimeout(() => {
+                        if (pc && (pc.iceConnectionState === "failed" || pc.iceConnectionState === "disconnected")) {
+                            cleanupCall(false);
+                        }
+                    }, 2000);
+                }
             }
         };
 
@@ -313,14 +319,8 @@
             if (st === "connected") {
                 setStatus("Connected");
                 showInCallUI();
-            } else if (st === "failed") {
-                console.warn("[ZChatCall] Connection failed, trying restart...");
-                if (pc && typeof pc.restartIce === "function") {
-                    pc.restartIce();
-                } else if (callActive) {
-                    cleanupCall(false);
-                }
-            } else if (st === "closed") {
+            } else if (st === "failed" || st === "disconnected" || st === "closed") {
+                console.warn("[ZChatCall] Connection lost or closed.");
                 if (callActive) cleanupCall(false);
             }
         };
@@ -615,7 +615,15 @@
         });
 
         socket.on("call_ended", () => {
+            console.log("[ZChatCall] call_ended received from peer.");
             cleanupCall(false);
+        });
+
+        socket.on("user_disconnected", (payload) => {
+            if (payload && payload.username === peerUsername) {
+                console.warn("[ZChatCall] Target user disconnected.");
+                cleanupCall(false);
+            }
         });
 
         socket.on("media_state", (payload) => {
@@ -636,6 +644,7 @@
 
         socket.on("disconnect", () => {
             console.log("[ZChatCall] socket disconnected");
+            if (callActive) cleanupCall(false);
         });
     }
 
@@ -690,6 +699,16 @@
             register(username);
         };
     }
+
+    window.addEventListener("beforeunload", () => {
+        if (callActive && peerUsername && socket) {
+            socket.emit("end_call", {
+                to: peerUsername,
+                from: myUsername,
+                reason: "page_unload",
+            });
+        }
+    });
 
     window.ZChatCall = {
         init,
