@@ -37,12 +37,7 @@ function renderMessages(chat) {
 
         const wrap = document.createElement("div");
         wrap.id = `msg-${msg.id}`;
-        const senderChanged = !!(prev && prev.senderId !== msg.senderId);
-        wrap.className =
-            (showTail ? "mb-8 " : "mb-1 ") +
-            (senderChanged ? "mt-5 " : "") +
-            "group relative flex w-full " +
-            (isMine ? "justify-end" : "justify-start");
+        wrap.className = (showTail ? "mb-5 " : "mb-1 ") + "group relative flex w-full " + (isMine ? "justify-end" : "justify-start");
 
         let attachmentHtml = "";
         if (msg.attachment) {
@@ -100,8 +95,8 @@ function renderMessages(chat) {
 
         // Nút menu 3 chấm — luôn hiện (mờ), rõ hơn khi hover / touch
         const menuBtnHtml = `
-                <button type="button" class="btn-msg-menu absolute top-1/2 -translate-y-1/2 ${isMine ? "-left-9" : "-right-9"} flex h-7 w-7 items-center justify-center rounded-full opacity-50 hover:opacity-100 hover:bg-elevated2 transition-all z-10" style="color: var(--muted);" title="More">
-                    <i data-lucide="more-vertical" class="w-4 h-4"></i>
+                <button type="button" class="btn-msg-menu absolute top-1/2 -translate-y-1/2 ${isMine ? "-left-9" : "-right-9"} flex h-7 w-7 items-center justify-center rounded-full opacity-70 hover:opacity-100 hover:bg-elevated2 transition-all z-10" style="color: #ffffff;" title="More">
+                    <i data-lucide="more-horizontal" class="w-4 h-4"></i>
                 </button>`;
 
         const bubbleInner = isImageMsg
