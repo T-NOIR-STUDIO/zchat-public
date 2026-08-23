@@ -1,6 +1,6 @@
 /* ============================================================
  * 05-export.js
- * Gom toàn bộ hàm ở 4 file trên thành window.ZChatE2EE — PHẢI LOAD SAU CÙNG (sau 01-04).
+ * Gom API P-256 ECIES thành window.ZChatE2EE — LOAD SAU 01–04.
  * ============================================================ */
 global.ZChatE2EE = {
     generateKeyPairJwk, ensureUserKeys, fetchPublicKeyForUsername,
@@ -9,4 +9,4 @@ global.ZChatE2EE = {
     markUserAsVerified, unmarkUserAsVerified, hasVerifiedUser,
     getLocalPrivateKey, getLocalPublicKey, cacheKeysLocally, looksLikeE2eePayload,
 };
-console.log("[E2EE] ZChatE2EE ready");
+console.log("[E2EE] ZChatE2EE ready (P-256 ECIES + AES-256-GCM)");
