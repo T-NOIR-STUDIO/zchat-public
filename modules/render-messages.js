@@ -37,7 +37,7 @@ function renderMessages(chat) {
 
         const wrap = document.createElement("div");
         wrap.id = `msg-${msg.id}`;
-        wrap.className = (showTail ? "mb-3 " : "mb-1 ") + "group relative flex w-full " + (isMine ? "justify-end" : "justify-start");
+        wrap.className = (showTail ? "mb-5 " : "mb-1 ") + "group relative flex w-full " + (isMine ? "justify-end" : "justify-start");
 
         let attachmentHtml = "";
         if (msg.attachment) {
