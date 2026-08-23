@@ -1,13 +1,8 @@
 /**
- * Z-Chat WebRTC 1-1 Video Call client
+ * Z-Chat WebRTC 1-1 Video Call client (Optimized for TURN & Bandwidth)
  * ------------------------------------
  * Phụ thuộc: socket.io client (CDN), lucide (optional icons)
  * Cấu hình: window.ZCHAT_SIGNAL_URL (mặc định http://localhost:5000)
- *
- * API public:
- *   ZChatCall.init()
- *   ZChatCall.startCall(targetUsername)
- *   ZChatCall.register(username)  // gọi sau login
  */
 (function () {
     "use strict";
@@ -17,7 +12,7 @@
         localStorage.getItem("zchat_signal_url") ||
         "https://zchat-backend-call.onrender.com";
 
-    // Metered TURN — https://dashboard.metered.ca
+    // Metered TURN — https://dashboard.metered.ca[cite: 2]
     const METERED_USER = window.ZCHAT_TURN_USER || "2bcc0de831c3742cc7c4c4aa";
     const METERED_PASS = window.ZCHAT_TURN_PASS || "fxTk7UPyGXEeDjN1";
     const ICE_SERVERS = {
@@ -58,6 +53,7 @@
     let pendingOffer = null;
     let micEnabled = true;
     let camEnabled = true;
+    let remoteIceCandidatesQueue = []; // Hàng đợi ICE chống lỗi race condition
 
     /* ---------- DOM helpers ---------- */
     function $(id) {
@@ -143,10 +139,11 @@
     /* ---------- Media / PeerConnection ---------- */
     async function getMedia(video) {
         if (localStream) return localStream;
+        // Giảm độ phân giải tối đa xuống 640x480 để tiết kiệm băng thông TURN
         localStream = await navigator.mediaDevices.getUserMedia({
             audio: true,
             video: video
-                ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }
+                ? { facingMode: "user", width: { max: 640 }, height: { max: 480 }, frameRate: { max: 20 } }
                 : false,
         });
         const localVideo = $("zcLocalVideo");
@@ -169,6 +166,33 @@
         const remoteVideo = $("zcRemoteVideo");
         if (remoteVideo) remoteVideo.srcObject = null;
         remoteStream = null;
+    }
+
+    // Hàm bóp giới hạn Bitrate để chống ngốn dung lượng TURN
+    function applyBandwidthLimit() {
+        if (!pc) return;
+        pc.getSenders().forEach((sender) => {
+            if (sender.track && sender.track.kind === "video") {
+                const params = sender.getParameters();
+                if (!params.encodings) params.encodings = [{}];
+                params.encodings[0].maxBitrate = 400000; // Giới hạn 400 kbps
+                sender.setParameters(params).catch(console.warn);
+            }
+        });
+    }
+
+    // Xả hàng đợi ICE Candidate sau khi setRemoteDescription thành công
+    async function processQueuedIceCandidates() {
+        while (remoteIceCandidatesQueue.length > 0) {
+            const cand = remoteIceCandidatesQueue.shift();
+            try {
+                if (pc) {
+                    await pc.addIceCandidate(new RTCIceCandidate(cand));
+                }
+            } catch (err) {
+                console.warn("[ZChatCall] addIceCandidate error:", err);
+            }
+        }
     }
 
     function createPeerConnection() {
@@ -274,6 +298,7 @@
         callActive = false;
         pendingOffer = null;
         isCaller = false;
+        remoteIceCandidatesQueue = []; // Reset queue
 
         if (pc) {
             try {
@@ -325,6 +350,7 @@
                 offerToReceiveVideo: true,
             });
             await pc.setLocalDescription(offer);
+            applyBandwidthLimit(); // Áp dụng bóp băng thông
 
             socket.emit("call_user", {
                 to: target,
@@ -349,8 +375,11 @@
             createPeerConnection();
             await attachLocalTracks(true);
             await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer));
+            await processQueuedIceCandidates(); // Xả hàng đợi ICE
+
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
+            applyBandwidthLimit(); // Áp dụng bóp băng thông
 
             socket.emit("make_answer", {
                 to: peerUsername,
@@ -407,7 +436,6 @@
             t.enabled = camEnabled;
         });
         setLocalCamAvatarVisible(!camEnabled);
-        // Báo peer để hiện avatar (kèm track mute)
         if (socket && peerUsername) {
             socket.emit("media_state", {
                 to: peerUsername,
@@ -462,7 +490,6 @@
 
         socket.on("incoming_call", async (payload) => {
             if (callActive) {
-                // Đang bận → từ chối
                 socket.emit("end_call", {
                     to: payload.from,
                     from: myUsername,
@@ -483,6 +510,8 @@
                 await pc.setRemoteDescription(
                     new RTCSessionDescription(payload.answer)
                 );
+                await processQueuedIceCandidates(); // Xả hàng đợi ICE
+                applyBandwidthLimit(); // Áp dụng bóp băng thông
                 setStatus("Connected");
                 showInCallUI();
             } catch (err) {
@@ -494,7 +523,12 @@
         socket.on("ice_candidate", async (payload) => {
             if (!pc || !payload.candidate) return;
             try {
-                await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+                // Kiểm tra xem remoteDescription đã sẵn sàng chưa, nếu chưa thì đưa vào queue
+                if (pc.remoteDescription && pc.remoteDescription.type) {
+                    await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+                } else {
+                    remoteIceCandidatesQueue.push(payload.candidate);
+                }
             } catch (err) {
                 console.warn("[ZChatCall] addIceCandidate:", err);
             }
@@ -549,12 +583,10 @@
         if (mute) mute.onclick = () => toggleMic();
         if (cam) cam.onclick = () => toggleCam();
 
-        // Nút video trên header chat
         const videoBtn = document.querySelector('button[aria-label="Video call"]');
         if (videoBtn && !videoBtn.dataset.zchatCallBound) {
             videoBtn.dataset.zchatCallBound = "1";
             videoBtn.addEventListener("click", () => {
-                // Lấy tên đối phương từ header
                 const nameEl = document.getElementById("chatHeaderName");
                 const peer = nameEl ? nameEl.textContent.trim() : "";
                 if (!peer || peer === "Saved Messages") {
@@ -571,7 +603,6 @@
         bindUI();
         if (myUsername) register(myUsername);
 
-        // Đồng bộ khi main.js gọi enterApp
         const prev = window.zchatEnterApp;
         window.zchatEnterApp = function (username) {
             if (typeof prev === "function") prev(username);
@@ -579,7 +610,6 @@
         };
     }
 
-    // Public API
     window.ZChatCall = {
         init,
         register,
