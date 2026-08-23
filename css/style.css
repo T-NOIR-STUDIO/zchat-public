@@ -175,6 +175,9 @@ textarea { field-sizing: content; }
     min-height: 36px !important;
     border-radius: 9999px !important;
     margin-bottom: 0 !important;
+    margin-left: 4px !important; /* nhích cả nút xanh sang phải */
+    position: relative;
+    left: 2px;
 }
 #sendBtn svg,
 #sendBtn i,
@@ -184,7 +187,6 @@ textarea { field-sizing: content; }
     stroke-width: 2.5 !important;
     stroke-linecap: square !important;
     stroke-linejoin: miter !important;
-    transform: translateX(0px);
 }
 
 
