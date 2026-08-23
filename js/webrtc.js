@@ -283,14 +283,11 @@
         pc.oniceconnectionstatechange = () => {
             const st = pc && pc.iceConnectionState;
             console.log("[ZChatCall] iceConnectionState:", st);
-            if (st === "failed" || st === "disconnected") {
+            // SỬA ĐỔI: Tắt ngay lập tức khi ICE connection bị ngắt hẳn
+            if (st === "failed" || st === "disconnected" || st === "closed") {
                 console.warn("[ZChatCall] ICE disconnect detected.");
                 if (callActive) {
-                    setTimeout(() => {
-                        if (pc && (pc.iceConnectionState === "failed" || pc.iceConnectionState === "disconnected")) {
-                            cleanupCall(false);
-                        }
-                    }, 2000);
+                    cleanupCall(false);
                 }
             }
         };
@@ -378,7 +375,17 @@
     }
 
     function cleanupCall(notifyPeer) {
-        const peer = peerUsername;
+        const peer = peerUsername; // Lưu lại peer trước khi clear
+        
+        // SỬA ĐỔI: Phát sự kiện báo đối phương TẮT CALL trước khi xóa peerUsername
+        if (notifyPeer && peer && socket) {
+            socket.emit("end_call", {
+                to: peer,
+                from: myUsername,
+                reason: "hangup",
+            });
+        }
+
         callActive = false;
         pendingOffer = null;
         isCaller = false;
@@ -397,14 +404,7 @@
         setRemoteCamAvatarVisible(false);
         updateMicCamButtons();
         hideAllCallUI();
-
-        if (notifyPeer && peer && socket) {
-            socket.emit("end_call", {
-                to: peer,
-                from: myUsername,
-                reason: "hangup",
-            });
-        }
+        
         peerUsername = "";
     }
 
@@ -700,6 +700,7 @@
         };
     }
 
+    // SỬA ĐỔI: Dùng sendBeacon / disconnect socket tức thì khi tắt tab
     window.addEventListener("beforeunload", () => {
         if (callActive && peerUsername && socket) {
             socket.emit("end_call", {
@@ -707,6 +708,7 @@
                 from: myUsername,
                 reason: "page_unload",
             });
+            socket.disconnect();
         }
     });
 
