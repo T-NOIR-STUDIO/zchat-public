@@ -37,11 +37,10 @@ function renderMessages(chat) {
 
         const wrap = document.createElement("div");
         wrap.id = `msg-${msg.id}`;
-        // Khoảng cách lớn hơn khi đổi người gửi (A ↔ B); tin cùng người vẫn sát
         const senderChanged = !!(prev && prev.senderId !== msg.senderId);
         wrap.className =
-            (showTail ? "mb-6 " : "mb-1 ") +
-            (senderChanged ? "mt-3 " : "") +
+            (showTail ? "mb-8 " : "mb-1 ") +
+            (senderChanged ? "mt-5 " : "") +
             "group relative flex w-full " +
             (isMine ? "justify-end" : "justify-start");
 
