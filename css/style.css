@@ -1,3 +1,18 @@
+/* Instrument Sans — bubble text + user names */
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap");
+
+#messageFeed .rounded-bubble,
+#messageFeed .msg-reply-quote,
+#messageFeed .msg-reply-image-name,
+#messageFeed .msg-reply-preview,
+.verified-name,
+#activeChat header .verified-name,
+#activeChat header h1,
+#activeChat header h2,
+#chatList .font-semibold,
+#chatList .font-medium {
+    font-family: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
 /*index.html*/
 html, body { height: 100%; }
 body { -webkit-font-smoothing: antialiased; }
