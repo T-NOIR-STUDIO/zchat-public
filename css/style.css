@@ -184,7 +184,7 @@ textarea { field-sizing: content; }
     stroke-width: 2.5 !important;
     stroke-linecap: square !important;
     stroke-linejoin: miter !important;
-    transform: translateX(1px);
+    transform: translateX(3px);
 }
 
 
