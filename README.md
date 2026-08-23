@@ -2,7 +2,7 @@
 
 **Private & encrypted messenger** — end-to-end encryption (E2EE), real-time chat, voice/video calls, and multi-device sync via Supabase.
 
-ZChat is a web-based messenger focused on privacy: messages can be encrypted client-side (RSA-OAEP + AES-GCM), avatars and keys sync by user ID (not username), and optional passcode lock protects the session.
+ZChat is a web-based messenger focused on privacy: messages can be encrypted client-side (P-256-ECC + AES-GCM), avatars and keys sync by user ID (not username), and optional passcode lock protects the session.
 
 ---
 
@@ -39,31 +39,6 @@ ZChat is a web-based messenger focused on privacy: messages can be encrypted cli
 | Forms | [Tally](https://tally.so) embed on the report page |
 
 ---
-
-## Project structure
-
-```
-/
-├── index.html              # Main app shell (onboarding + chat UI)
-├── settings.html           # Preferences, theme, language, passcode
-├── profile.html            # Profile & username / avatar
-├── recovery.html           # Passcode create / unlock
-├── report.html             # Bug report (Tally embed)
-├── css/
-│   └── style.css           # Theme variables, bubbles, composer, liquid glass
-├── modules (load order below)
-├── js/
-│   ├── auth.js             # Supabase client / session helpers
-│   ├── e2ee.js             # Key management, encrypt/decrypt, safety number
-│   ├── recovery.js         # Passcode UI + server table `passcode`
-│   ├── settings.js         # Settings page logic
-│   ├── profile.js          # Profile page logic
-│   ├── report.js           # Report page theme / icons
-│   └── webrtc.js           # Call UI + peer connection
-├── assets/img/             # Favicons, logos
-├── assets/audio/           #Audio Calling song
-└── README.md
-```
 
 ### Chat app modules (`js/`) — load order
 
