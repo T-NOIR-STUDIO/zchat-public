@@ -34,7 +34,7 @@ ZChat is a web-based messenger focused on privacy: messages can be encrypted cli
 | Frontend | HTML, Tailwind CSS, Lucide icons |
 | Logic | Vanilla JavaScript (modular files) |
 | Backend / DB | [Supabase](https://supabase.com) (Auth-related flows, Postgres, Storage, Realtime) |
-| E2EE | Web Crypto API (`js/e2ee.js`) |
+| E2EE | Web Crypto API (`e2ee`) |
 | Calls | WebRTC + Socket.IO signaling |
 | Forms | [Tally](https://tally.so) embed on the report page |
 
