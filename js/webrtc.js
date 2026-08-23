@@ -23,7 +23,11 @@
                 urls: [
                     "turn:standard.relay.metered.ca:80?transport=udp",
                     "turn:standard.relay.metered.ca:80?transport=tcp",
-                    "turn:standard.relay.metered.ca:443?transport=tcp"
+                    "turn:standard.relay.metered.ca:443?transport=tcp",
+                    // turns: (TURN qua TLS) — bắt buộc phải có để vượt qua các
+                    // mạng công ty/trường học/di động chỉ cho phép traffic
+                    // HTTPS (443/TLS) đi ra ngoài, chặn hết UDP lẫn TCP thường.
+                    "turns:standard.relay.metered.ca:443?transport=tcp"
                 ],
                 username: METERED_USER,
                 credential: METERED_PASS,
@@ -31,6 +35,12 @@
         ],
         bundlePolicy: "max-bundle",
         rtcpMuxPolicy: "require",
+        // DEBUG: đổi thành "relay" tạm thời để ép TOÀN BỘ traffic đi qua TURN,
+        // không cho dùng STUN/kết nối thẳng. Nếu gọi vẫn fail y hệt kể cả
+        // 2 máy cùng mạng LAN -> chứng minh chắc chắn lỗi nằm ở TURN
+        // (sai username/password, credential hết hạn, hoặc server chặn).
+        // Nếu cùng LAN vẫn fail nhưng để "all" thì lại chạy -> đúng là do TURN.
+        iceTransportPolicy: window.ZCHAT_FORCE_TURN ? "relay" : "all",
     };
 
     let socket = null;
@@ -280,12 +290,41 @@
             }
         };
 
+        // QUAN TRỌNG: đây là chỗ duy nhất cho biết CHÍNH XÁC vì sao TURN fail.
+        // errorCode 401 = sai username/credential (hết hạn hoặc sai)
+        // errorCode 403 = bị server TURN từ chối (quota hết, IP bị chặn...)
+        // errorCode 701 = không kết nối được tới server TURN (sai host/port, mạng chặn)
+        pc.onicecandidateerror = (ev) => {
+            console.error(
+                "[ZChatCall] ICE candidate error:",
+                "code=" + ev.errorCode,
+                "text=" + ev.errorText,
+                "url=" + ev.url
+            );
+        };
+
         pc.oniceconnectionstatechange = () => {
             const st = pc && pc.iceConnectionState;
             console.log("[ZChatCall] iceConnectionState:", st);
             // SỬA ĐỔI: Tắt ngay lập tức khi ICE connection bị ngắt hẳn
             if (st === "failed" || st === "disconnected" || st === "closed") {
                 console.warn("[ZChatCall] ICE disconnect detected.");
+                if (st === "failed" && pc && typeof pc.getStats === "function") {
+                    // In ra loại candidate-pair đã thử (relay/srflx/host) để biết
+                    // TURN có được thử tới hay không, và lý do state cuối cùng.
+                    pc.getStats(null).then((stats) => {
+                        stats.forEach((report) => {
+                            if (report.type === "candidate-pair") {
+                                console.warn("[ZChatCall] candidate-pair:", {
+                                    state: report.state,
+                                    nominated: report.nominated,
+                                    localCandidateId: report.localCandidateId,
+                                    remoteCandidateId: report.remoteCandidateId,
+                                });
+                            }
+                        });
+                    }).catch(() => {});
+                }
                 if (callActive) {
                     cleanupCall(false);
                 }
