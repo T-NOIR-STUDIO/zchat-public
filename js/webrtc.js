@@ -1,13 +1,8 @@
 /**
  * Z-Chat WebRTC 1-1 Video Call client
- * ------------------------------------
- * Phụ thuộc: socket.io client (CDN), lucide (optional icons)
- * Cấu hình: window.ZCHAT_SIGNAL_URL (mặc định http://localhost:5000)
- *
- * API public:
- *   ZChatCall.init()
- *   ZChatCall.startCall(targetUsername)
- *   ZChatCall.register(username)  // gọi sau login
+ * - Avatar thật khi gọi / tắt cam
+ * - Bắt buộc TURN (iceTransportPolicy: "relay")
+ * - Ít ICE server (tránh cảnh báo 5+ STUN/TURN)
  */
 (function () {
     "use strict";
@@ -17,25 +12,14 @@
         localStorage.getItem("zchat_signal_url") ||
         "https://zchat-backend-call.onrender.com";
 
-    // Metered TURN — https://dashboard.metered.ca
     const METERED_USER = window.ZCHAT_TURN_USER || "2bcc0de831c3742cc7c4c4aa";
     const METERED_PASS = window.ZCHAT_TURN_PASS || "fxTk7UPyGXEeDjN1";
+
     const ICE_SERVERS = {
         iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:stun1.l.google.com:19302" },
+            { urls: "stun:stun.relay.metered.ca:80" },
             {
                 urls: "turn:standard.relay.metered.ca:80",
-                username: METERED_USER,
-                credential: METERED_PASS,
-            },
-            {
-                urls: "turn:standard.relay.metered.ca:80?transport=tcp",
-                username: METERED_USER,
-                credential: METERED_PASS,
-            },
-            {
-                urls: "turn:standard.relay.metered.ca:443",
                 username: METERED_USER,
                 credential: METERED_PASS,
             },
@@ -45,6 +29,9 @@
                 credential: METERED_PASS,
             },
         ],
+        iceTransportPolicy: "relay",
+        bundlePolicy: "max-bundle",
+        rtcpMuxPolicy: "require",
     };
 
     let socket = null;
@@ -58,8 +45,8 @@
     let pendingOffer = null;
     let micEnabled = true;
     let camEnabled = true;
+    let remoteIceCandidatesQueue = [];
 
-    /* ---------- DOM helpers ---------- */
     function $(id) {
         return document.getElementById(id);
     }
@@ -86,31 +73,96 @@
     }
 
     function peerInitials(name) {
-        return (name || "?")
-            .split(" ")
-            .filter(Boolean)
-            .slice(0, 2)
-            .map((s) => s[0].toUpperCase())
-            .join("") || "?";
+        return (
+            (name || "?")
+                .split(" ")
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((s) => s[0].toUpperCase())
+                .join("") || "?"
+        );
+    }
+
+    function resolvePeerParticipant(name) {
+        const n = (name || "").trim().toLowerCase();
+        if (n && typeof state !== "undefined" && state.chats) {
+            const chat = state.chats.find(
+                (c) =>
+                    c.participant &&
+                    c.participant.name &&
+                    String(c.participant.name).toLowerCase() === n
+            );
+            if (chat && chat.participant) return chat.participant;
+        }
+        return {
+            name: name || "?",
+            avatarType: "initials",
+            avatarColor: null,
+            avatarUrl: null,
+            avatarEmoji: null,
+        };
+    }
+
+    function resolveMyParticipant() {
+        return {
+            name: myUsername || "Me",
+            avatarType: localStorage.getItem("zchat_avatar_type") || "initials",
+            avatarColor: localStorage.getItem("zchat_avatar_color") || null,
+            avatarUrl: localStorage.getItem("zchat_avatar_url") || null,
+            avatarEmoji: localStorage.getItem("zchat_avatar_emoji") || null,
+        };
+    }
+
+    function fillCallAvatarEl(el, participant) {
+        if (!el) return;
+        const p = participant || { name: "?", avatarType: "initials" };
+        const name = p.name || "?";
+        const ini = peerInitials(name);
+
+        if (p.avatarType === "photo" && p.avatarUrl) {
+            el.innerHTML =
+                '<img src="' +
+                String(p.avatarUrl).replace(/"/g, "&quot;") +
+                '" alt="' +
+                ini +
+                '" class="h-full w-full rounded-full object-cover select-none" />';
+            el.style.background = "transparent";
+            el.style.color = "transparent";
+            el.style.fontSize = "0";
+            return;
+        }
+        if (p.avatarType === "emoji" && p.avatarEmoji) {
+            el.innerHTML = "";
+            el.textContent = p.avatarEmoji;
+            el.style.background = "#2a2a2a";
+            el.style.color = "#fff";
+            el.style.fontSize = "";
+            return;
+        }
+        el.innerHTML = "";
+        el.textContent = ini;
+        el.style.background = p.avatarColor || "#1f1f1f";
+        el.style.color = "#fff";
+        el.style.fontSize = "";
     }
 
     function setPeerName(name) {
         const label = name || "Unknown";
-        const ini = peerInitials(name);
+        const peer = resolvePeerParticipant(name);
+        const me = resolveMyParticipant();
+
         const el = $("zcCallPeerName");
         if (el) el.textContent = label;
-        const av = $("zcCallPeerAvatar");
-        if (av) av.textContent = ini;
+
+        fillCallAvatarEl($("zcCallPeerAvatar"), peer);
         document.querySelectorAll(".zc-incoming-name, .zc-incall-name").forEach((n) => {
             n.textContent = label;
         });
         document.querySelectorAll(".zc-incoming-avatar").forEach((n) => {
-            n.textContent = ini;
+            fillCallAvatarEl(n, peer);
         });
-        const remoteAv = $("zcRemoteAvatarCircle");
-        if (remoteAv) remoteAv.textContent = ini;
-        const localAv = $("zcLocalAvatarCircle");
-        if (localAv) localAv.textContent = peerInitials(myUsername || "?");
+        fillCallAvatarEl($("zcRemoteAvatarCircle"), peer);
+        fillCallAvatarEl($("zcLocalAvatarCircle"), me);
     }
 
     function setLocalCamAvatarVisible(on) {
@@ -124,8 +176,7 @@
             if (on) video.classList.add("zc-cam-off");
             else video.classList.remove("zc-cam-off");
         }
-        const localAv = $("zcLocalAvatarCircle");
-        if (localAv) localAv.textContent = peerInitials(myUsername || "?");
+        if (on) fillCallAvatarEl($("zcLocalAvatarCircle"), resolveMyParticipant());
     }
 
     function setRemoteCamAvatarVisible(on) {
@@ -136,17 +187,25 @@
             else overlay.classList.add("hidden");
         }
         if (video) video.style.opacity = on ? "0" : "1";
-        const remoteAv = $("zcRemoteAvatarCircle");
-        if (remoteAv) remoteAv.textContent = peerInitials(peerUsername || "?");
+        if (on) {
+            fillCallAvatarEl(
+                $("zcRemoteAvatarCircle"),
+                resolvePeerParticipant(peerUsername)
+            );
+        }
     }
 
-    /* ---------- Media / PeerConnection ---------- */
     async function getMedia(video) {
         if (localStream) return localStream;
         localStream = await navigator.mediaDevices.getUserMedia({
             audio: true,
             video: video
-                ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }
+                ? {
+                      facingMode: "user",
+                      width: { ideal: 640, max: 640 },
+                      height: { ideal: 480, max: 480 },
+                      frameRate: { ideal: 20, max: 24 },
+                  }
                 : false,
         });
         const localVideo = $("zcLocalVideo");
@@ -171,12 +230,38 @@
         remoteStream = null;
     }
 
+    function applyBandwidthLimit() {
+        if (!pc) return;
+        pc.getSenders().forEach((sender) => {
+            if (sender.track && sender.track.kind === "video") {
+                const params = sender.getParameters();
+                if (!params.encodings || !params.encodings.length) {
+                    params.encodings = [{}];
+                }
+                params.encodings[0].maxBitrate = 400000;
+                sender.setParameters(params).catch(() => {});
+            }
+        });
+    }
+
+    async function processQueuedIceCandidates() {
+        while (remoteIceCandidatesQueue.length > 0) {
+            const cand = remoteIceCandidatesQueue.shift();
+            try {
+                if (pc) await pc.addIceCandidate(new RTCIceCandidate(cand));
+            } catch (err) {
+                console.warn("[ZChatCall] addIceCandidate error:", err);
+            }
+        }
+    }
+
     function createPeerConnection() {
         if (pc) {
             try {
                 pc.close();
             } catch (_) {}
         }
+        remoteIceCandidatesQueue = [];
         pc = new RTCPeerConnection(ICE_SERVERS);
 
         pc.onicecandidate = (ev) => {
@@ -186,6 +271,14 @@
                     from: myUsername,
                     candidate: ev.candidate,
                 });
+            }
+        };
+
+        pc.oniceconnectionstatechange = () => {
+            const st = pc && pc.iceConnectionState;
+            console.log("[ZChatCall] iceConnectionState:", st);
+            if (st === "failed") {
+                console.warn("[ZChatCall] ICE failed — check TURN credentials / quota");
             }
         };
 
@@ -200,7 +293,10 @@
             }
             if (ev.track && ev.track.kind === "video") {
                 const syncRemoteCam = () => {
-                    const videoOn = ev.track.enabled && ev.track.readyState === "live" && !ev.track.muted;
+                    const videoOn =
+                        ev.track.enabled &&
+                        ev.track.readyState === "live" &&
+                        !ev.track.muted;
                     setRemoteCamAvatarVisible(!videoOn);
                 };
                 ev.track.onmute = () => setRemoteCamAvatarVisible(true);
@@ -212,10 +308,11 @@
 
         pc.onconnectionstatechange = () => {
             const st = pc && pc.connectionState;
+            console.log("[ZChatCall] connectionState:", st);
             if (st === "connected") {
                 setStatus("Connected");
                 showInCallUI();
-            } else if (st === "failed" || st === "disconnected" || st === "closed") {
+            } else if (st === "failed" || st === "closed") {
                 if (callActive) cleanupCall(false);
             }
         };
@@ -230,7 +327,6 @@
         });
     }
 
-    /* ---------- UI states ---------- */
     function showOutgoingUI(name) {
         hide($("zcIncomingPanel"));
         hide($("zcInCallPanel"));
@@ -257,6 +353,11 @@
         show($("zcInCallPanel"));
         show($("zcCallModal"));
         setStatus("In call");
+        fillCallAvatarEl($("zcLocalAvatarCircle"), resolveMyParticipant());
+        fillCallAvatarEl(
+            $("zcRemoteAvatarCircle"),
+            resolvePeerParticipant(peerUsername)
+        );
         icons();
     }
 
@@ -268,12 +369,12 @@
         setStatus("");
     }
 
-    /* ---------- Call lifecycle ---------- */
     function cleanupCall(notifyPeer) {
         const peer = peerUsername;
         callActive = false;
         pendingOffer = null;
         isCaller = false;
+        remoteIceCandidatesQueue = [];
 
         if (pc) {
             try {
@@ -325,6 +426,7 @@
                 offerToReceiveVideo: true,
             });
             await pc.setLocalDescription(offer);
+            applyBandwidthLimit();
 
             socket.emit("call_user", {
                 to: target,
@@ -349,8 +451,11 @@
             createPeerConnection();
             await attachLocalTracks(true);
             await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer));
+            await processQueuedIceCandidates();
+
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
+            applyBandwidthLimit();
 
             socket.emit("make_answer", {
                 to: peerUsername,
@@ -407,7 +512,6 @@
             t.enabled = camEnabled;
         });
         setLocalCamAvatarVisible(!camEnabled);
-        // Báo peer để hiện avatar (kèm track mute)
         if (socket && peerUsername) {
             socket.emit("media_state", {
                 to: peerUsername,
@@ -430,12 +534,13 @@
         if (camBtn) {
             camBtn.classList.toggle("zc-call-btn-off", !camEnabled);
             const icon = camBtn.querySelector("[data-lucide]");
-            if (icon) icon.setAttribute("data-lucide", camEnabled ? "video" : "video-off");
+            if (icon) {
+                icon.setAttribute("data-lucide", camEnabled ? "video" : "video-off");
+            }
         }
         icons();
     }
 
-    /* ---------- Socket ---------- */
     function connectSocket() {
         if (typeof io === "undefined") {
             console.error("[ZChatCall] socket.io client chưa load (cdn).");
@@ -462,7 +567,6 @@
 
         socket.on("incoming_call", async (payload) => {
             if (callActive) {
-                // Đang bận → từ chối
                 socket.emit("end_call", {
                     to: payload.from,
                     from: myUsername,
@@ -483,6 +587,8 @@
                 await pc.setRemoteDescription(
                     new RTCSessionDescription(payload.answer)
                 );
+                await processQueuedIceCandidates();
+                applyBandwidthLimit();
                 setStatus("Connected");
                 showInCallUI();
             } catch (err) {
@@ -492,9 +598,17 @@
         });
 
         socket.on("ice_candidate", async (payload) => {
-            if (!pc || !payload.candidate) return;
+            if (!payload || !payload.candidate) return;
+            if (!pc) {
+                remoteIceCandidatesQueue.push(payload.candidate);
+                return;
+            }
             try {
-                await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+                if (pc.remoteDescription && pc.remoteDescription.type) {
+                    await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+                } else {
+                    remoteIceCandidatesQueue.push(payload.candidate);
+                }
             } catch (err) {
                 console.warn("[ZChatCall] addIceCandidate:", err);
             }
@@ -549,14 +663,13 @@
         if (mute) mute.onclick = () => toggleMic();
         if (cam) cam.onclick = () => toggleCam();
 
-        // Nút video trên header chat
         const videoBtn = document.querySelector('button[aria-label="Video call"]');
         if (videoBtn && !videoBtn.dataset.zchatCallBound) {
             videoBtn.dataset.zchatCallBound = "1";
             videoBtn.addEventListener("click", () => {
-                // Lấy tên đối phương từ header
                 const nameEl = document.getElementById("chatHeaderName");
-                const peer = nameEl ? nameEl.textContent.trim() : "";
+                let peer = nameEl ? nameEl.textContent.trim() : "";
+                peer = peer.split("\n")[0].trim();
                 if (!peer || peer === "Saved Messages") {
                     alert("Open a chat with a friend to start a video call.");
                     return;
@@ -571,7 +684,6 @@
         bindUI();
         if (myUsername) register(myUsername);
 
-        // Đồng bộ khi main.js gọi enterApp
         const prev = window.zchatEnterApp;
         window.zchatEnterApp = function (username) {
             if (typeof prev === "function") prev(username);
@@ -579,7 +691,6 @@
         };
     }
 
-    // Public API
     window.ZChatCall = {
         init,
         register,
