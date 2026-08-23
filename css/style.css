@@ -226,6 +226,26 @@ textarea { field-sizing: content; }
 .msg-action-item.danger { color: #ef4444; }
 .msg-action-item .msg-action-icon { width: 15px; height: 15px; opacity: .75; flex-shrink: 0; }
 
+/* 3 chấm cạnh tin nhắn — khớp dark / light */
+#messageFeed .btn-msg-menu {
+    color: var(--muted) !important;
+    opacity: 0.7;
+}
+#messageFeed .btn-msg-menu:hover {
+    opacity: 1;
+    color: var(--ink) !important;
+}
+[data-theme="dark"] #messageFeed .btn-msg-menu {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+[data-theme="light"] #messageFeed .btn-msg-menu {
+    color: rgba(9, 9, 11, 0.45) !important;
+}
+[data-theme="light"] #messageFeed .btn-msg-menu:hover {
+    color: rgba(9, 9, 11, 0.85) !important;
+}
+
+
 .msg-reply-quote {
     border-left: 3px solid var(--transparent-border);
     background-color: rgba(127,127,127,0.12);
