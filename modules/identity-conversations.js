@@ -15,23 +15,78 @@ function applyAvatarFields(participant, row) {
     }
 }
 
+const userRowById = Object.create(null);
+const _inflightUserById = Object.create(null);
+const _inflightUserByName = Object.create(null);
+
+/** Batch users by id — 1 query, cache + in-flight coalesce */
+async function fetchUsersByIds(ids) {
+    const unique = [...new Set((ids || []).filter(Boolean).map(String))];
+    if (!unique.length || !window.supabaseClient) return {};
+    const missing = unique.filter((id) => !userRowById[id] && !_inflightUserById[id]);
+    if (missing.length) {
+        const promise = (async () => {
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from("users")
+                    .select("id, username, avatar_type, avatar_color, avatar_emoji, avatar_url, is_verified")
+                    .in("id", missing);
+                if (error) {
+                    console.error("[ZChat] fetchUsersByIds:", error);
+                    return;
+                }
+                (data || []).forEach((u) => {
+                    if (!u || !u.id) return;
+                    userRowById[u.id] = u;
+                    if (u.username) userIdToName[u.id] = u.username;
+                });
+            } finally {
+                missing.forEach((id) => { delete _inflightUserById[id]; });
+            }
+        })();
+        missing.forEach((id) => { _inflightUserById[id] = promise; });
+        await promise;
+    } else {
+        const waits = unique.map((id) => _inflightUserById[id]).filter(Boolean);
+        if (waits.length) await Promise.all(waits);
+    }
+    const out = Object.create(null);
+    unique.forEach((id) => { if (userRowById[id]) out[id] = userRowById[id]; });
+    return out;
+}
+
 async function fetchAvatarForUsername(username) {
     if (!window.supabaseClient || !username) return null;
-    try {
-        const { data, error } = await window.supabaseClient
-            .from("users")
-            .select("id, username, avatar_type, avatar_color, avatar_emoji, avatar_url, is_verified")
-            .ilike("username", username)
-            .maybeSingle();
-        if (error) {
-            console.error("[ZChat] fetchAvatarForUsername error:", error);
-            return null;
-        }
-        return data || null;
-    } catch (err) {
-        console.error("[ZChat] fetchAvatarForUsername exception:", err);
-        return null;
+    const key = String(username).toLowerCase();
+    for (const id of Object.keys(userRowById)) {
+        const u = userRowById[id];
+        if (u && u.username && String(u.username).toLowerCase() === key) return u;
     }
+    if (_inflightUserByName[key]) return _inflightUserByName[key];
+    _inflightUserByName[key] = (async () => {
+        try {
+            const { data, error } = await window.supabaseClient
+                .from("users")
+                .select("id, username, avatar_type, avatar_color, avatar_emoji, avatar_url, is_verified")
+                .ilike("username", username)
+                .maybeSingle();
+            if (error) {
+                console.error("[ZChat] fetchAvatarForUsername error:", error);
+                return null;
+            }
+            if (data && data.id) {
+                userRowById[data.id] = data;
+                if (data.username) userIdToName[data.id] = data.username;
+            }
+            return data || null;
+        } catch (err) {
+            console.error("[ZChat] fetchAvatarForUsername exception:", err);
+            return null;
+        } finally {
+            delete _inflightUserByName[key];
+        }
+    })();
+    return _inflightUserByName[key];
 }
 
 /* ============ CONVERSATIONS 1-1 (bảng public.conversations: user_1, user_2) ============ */
@@ -62,20 +117,13 @@ function senderIdFromRow(row, myId) {
 async function resolveUsernameByUserId(userId) {
     if (!userId) return null;
     if (userIdToName[userId]) return userIdToName[userId];
-    if (!window.supabaseClient) return null;
-    try {
-        const { data, error } = await window.supabaseClient
-            .from("users")
-            .select("id, username")
-            .eq("id", userId)
-            .maybeSingle();
-        if (error || !data) return null;
-        if (data.username) userIdToName[data.id] = data.username;
-        return data.username || null;
-    } catch (err) {
-        console.error("[ZChat] resolveUsernameByUserId:", err);
-        return null;
+    if (userRowById[userId] && userRowById[userId].username) {
+        userIdToName[userId] = userRowById[userId].username;
+        return userIdToName[userId];
     }
+    const map = await fetchUsersByIds([userId]);
+    const u = map[userId];
+    return (u && u.username) || null;
 }
 
 async function resolveUserIdByUsername(username) {
@@ -194,27 +242,41 @@ async function resolveOtherNameFromConversationId(convId, meId) {
    giữa tên hiển thị trong chat và username thật lưu trong bảng users. */
 async function refreshAllParticipantAvatars() {
     if (!window.supabaseClient) return;
-    const names = [...new Set(
-        state.chats
-            .map((c) => c.participant && c.participant.name)
-            .filter((n) => n && n !== "Saved Messages" && !(state.chats.find((c) => c.participant && c.participant.name === n && c.participant.isSelfNotes)))
-    )];
-    if (!names.length) return;
-
+    const ids = [];
+    const needByName = [];
+    state.chats.forEach((c) => {
+        if (!c || !c.participant || c.participant.isSelfNotes) return;
+        if (c.participant.userId) ids.push(c.participant.userId);
+        else if (c.participant.name && c.participant.name !== "Chat User") needByName.push(c.participant.name);
+    });
     try {
-        const rows = await Promise.all(names.map((n) => fetchAvatarForUsername(n)));
-
+        const byId = await fetchUsersByIds(ids);
         let changed = false;
         state.chats.forEach((c) => {
-            if (!c.participant) return;
-            const idx = names.findIndex((n) => n.toLowerCase() === c.participant.name.toLowerCase());
-            const row = idx > -1 ? rows[idx] : null;
+            if (!c || !c.participant || c.participant.isSelfNotes) return;
+            const row = c.participant.userId ? byId[c.participant.userId] : null;
             if (row) {
                 applyAvatarFields(c.participant, row);
                 changed = true;
             }
         });
-
+        if (needByName.length) {
+            const uniqueNames = [...new Set(needByName.map((n) => String(n).toLowerCase()))];
+            const rows = await Promise.all(uniqueNames.map((n) => fetchAvatarForUsername(n)));
+            const byName = Object.create(null);
+            rows.forEach((r) => {
+                if (r && r.username) byName[String(r.username).toLowerCase()] = r;
+            });
+            state.chats.forEach((c) => {
+                if (!c || !c.participant || c.participant.isSelfNotes || c.participant.userId) return;
+                const row = byName[String(c.participant.name || "").toLowerCase()];
+                if (row) {
+                    applyAvatarFields(c.participant, row);
+                    if (row.id) c.participant.userId = row.id;
+                    changed = true;
+                }
+            });
+        }
         if (changed) {
             renderChatList();
             const activeChat = state.chats.find((c) => c.id === state.activeChatId);
@@ -316,17 +378,14 @@ function ensureSavedMessagesChat() {
     p.avatarEmoji = localStorage.getItem("zchat_avatar_emoji") || p.avatarEmoji || null;
     p.avatarUrl = localStorage.getItem("zchat_avatar_url") || p.avatarUrl || null;
 
-    // Tick xanh trên chat tự nhắn: lấy is_verified từ server (không đổi tên)
-    if (displayName && typeof fetchAvatarForUsername === "function") {
+    if (displayName) {
         fetchAvatarForUsername(displayName).then((row) => {
             if (!row || !savedChat || !savedChat.participant) return;
             applyAvatarFields(savedChat.participant, row);
             savedChat.participant.isSelfNotes = true;
             savedChat.participant.name = displayName;
             if (typeof renderChatList === "function") renderChatList();
-            if (state.activeChatId === savedChat.id && typeof renderActiveChat === "function") {
-                renderActiveChat();
-            }
+            if (state.activeChatId === savedChat.id && typeof renderActiveChat === "function") renderActiveChat();
         }).catch(() => {});
     }
 
