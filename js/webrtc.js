@@ -1,7 +1,8 @@
 /**
  * Z-Chat WebRTC 1-1 Video Call client
- * - Fixed: Black screen on TURN relay & Low Latency LAN/WAN connection
+ * - Fix WebRTC ICE connection between Chrome & Firefox
  * - Auto sync call termination (hangup / close tab / network drop)
+ * - Fix Cloudflare __cf_bm cookie rejection on avatars
  */
 (function () {
     "use strict";
@@ -14,25 +15,20 @@
     const METERED_USER = window.ZCHAT_TURN_USER || "2bcc0de831c3742cc7c4c4aa";
     const METERED_PASS = window.ZCHAT_TURN_PASS || "fxTk7UPyGXEeDjN1";
 
-    // TỐI ƯU ICE SERVERS: Đưa STUN lên đầu, ưu tiên UDP cho TURN để tránh đen màn hình
     const ICE_SERVERS = {
         iceServers: [
             { urls: "stun:stun.l.google.com:19302" },
             { urls: "stun:stun1.l.google.com:19302" },
-            { urls: "stun:stun2.l.google.com:19302" },
-            { urls: "stun:stun3.l.google.com:19302" },
             {
                 urls: [
-                    "turn:standard.relay.metered.ca:80",
                     "turn:standard.relay.metered.ca:80?transport=udp",
-                    "turn:standard.relay.metered.ca:443",
+                    "turn:standard.relay.metered.ca:80?transport=tcp",
                     "turn:standard.relay.metered.ca:443?transport=tcp"
                 ],
                 username: METERED_USER,
                 credential: METERED_PASS,
             },
         ],
-        iceTransportPolicy: "all", // Bắt buộc thử cả P2P STUN lẫn TURN Relay
         bundlePolicy: "max-bundle",
         rtcpMuxPolicy: "require",
     };
@@ -201,19 +197,14 @@
     async function getMedia(video) {
         if (localStream) return localStream;
         try {
-            // Tối ưu hóa cấu hình Video nhẹ hơn để chạy mượt khi thông qua TURN Relay
             localStream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true
-                },
+                audio: true,
                 video: video
                     ? {
                         facingMode: "user",
-                        width: { ideal: 480, max: 640 },
-                        height: { ideal: 360, max: 480 },
-                        frameRate: { ideal: 15, max: 20 },
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        frameRate: { max: 24 },
                     }
                     : false,
             });
@@ -252,8 +243,7 @@
                 if (!params.encodings || !params.encodings.length) {
                     params.encodings = [{}];
                 }
-                // Giới hạn 250kbps để TURN Server mượt hơn, không đứt đoạn
-                params.encodings[0].maxBitrate = 250000;
+                params.encodings[0].maxBitrate = 400000;
                 sender.setParameters(params).catch(() => {});
             }
         });
@@ -293,32 +283,27 @@
         pc.oniceconnectionstatechange = () => {
             const st = pc && pc.iceConnectionState;
             console.log("[ZChatCall] iceConnectionState:", st);
-            if (st === "failed" || st === "closed") {
-                console.warn("[ZChatCall] ICE connection failed.");
-                if (callActive) cleanupCall(false);
+            // SỬA ĐỔI: Tắt ngay lập tức khi ICE connection bị ngắt hẳn
+            if (st === "failed" || st === "disconnected" || st === "closed") {
+                console.warn("[ZChatCall] ICE disconnect detected.");
+                if (callActive) {
+                    cleanupCall(false);
+                }
             }
         };
 
         pc.ontrack = (ev) => {
-            console.log("[ZChatCall] Remote track received:", ev.track.kind);
             if (!remoteStream) remoteStream = new MediaStream();
             remoteStream.addTrack(ev.track);
-            
             const remoteVideo = $("zcRemoteVideo");
             if (remoteVideo) {
                 remoteVideo.srcObject = remoteStream;
                 remoteVideo.setAttribute("playsinline", "true");
                 remoteVideo.setAttribute("autoplay", "true");
-                
-                // Cưỡng chế phát lại Video khi nhận luồng dữ liệu từ TURN
-                remoteVideo.play().then(() => {
-                    setRemoteCamAvatarVisible(false);
-                }).catch((e) => {
-                    console.warn("[ZChatCall] Auto-play blocked:", e);
-                });
+                remoteVideo.play().catch(() => {});
             }
-
             if (ev.track && ev.track.kind === "video") {
+                setRemoteCamAvatarVisible(false);
                 ev.track.onmute = () => setRemoteCamAvatarVisible(true);
                 ev.track.onunmute = () => setRemoteCamAvatarVisible(false);
                 ev.track.onended = () => setRemoteCamAvatarVisible(true);
@@ -331,7 +316,8 @@
             if (st === "connected") {
                 setStatus("Connected");
                 showInCallUI();
-            } else if (st === "failed" || st === "closed") {
+            } else if (st === "failed" || st === "disconnected" || st === "closed") {
+                console.warn("[ZChatCall] Connection lost or closed.");
                 if (callActive) cleanupCall(false);
             }
         };
@@ -389,8 +375,9 @@
     }
 
     function cleanupCall(notifyPeer) {
-        const peer = peerUsername;
+        const peer = peerUsername; // Lưu lại peer trước khi clear
 
+        // SỬA ĐỔI: Phát sự kiện báo đối phương TẮT CALL trước khi xóa peerUsername
         if (notifyPeer && peer && socket) {
             socket.emit("end_call", {
                 to: peer,
@@ -713,6 +700,7 @@
         };
     }
 
+    // SỬA ĐỔI: Dùng sendBeacon / disconnect socket tức thì khi tắt tab
     window.addEventListener("beforeunload", () => {
         if (callActive && peerUsername && socket) {
             socket.emit("end_call", {
