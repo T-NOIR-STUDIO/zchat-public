@@ -1,11 +1,7 @@
 /* ============================================================
  * 02-key-management.js
- * ensureUserKeys() (đảm bảo user có cặp khoá, chỉ đọc nếu server đã có), fetchPublicKeyForUsername(). Phụ thuộc: 01.
  * ============================================================ */
-
 async function ensureUserKeys(username, existingUserRow) {
-    // - Đã có public_key trên server → CHỈ ĐỌC, không bao giờ generate/ghi đè
-    // - Chưa có public_key (user mới / chưa gắn key) → tạo 1 lần và lưu
     if (!username) {
         return { publicKey: getLocalPublicKey(), privateKey: getLocalPrivateKey() };
     }
