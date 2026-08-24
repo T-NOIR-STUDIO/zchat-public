@@ -1,6 +1,5 @@
 /* ============================================================
  * 05-export.js
- * Gom API P-256 ECIES thành window.ZChatE2EE — LOAD SAU 01–04.
  * ============================================================ */
 global.ZChatE2EE = {
     generateKeyPairJwk, ensureUserKeys, fetchPublicKeyForUsername,
