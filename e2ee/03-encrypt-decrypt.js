@@ -3,7 +3,6 @@
  * P-256 ECIES + AES-256-GCM encrypt/decrypt. Phụ thuộc: 01.
  * Payload v2: Base64(JSON) { v, alg, iv, c, e?, keys? }
  * ============================================================ */
-
 function looksLikeE2eePayload(str) {
     if (!str || typeof str !== "string") return false;
     if (str.startsWith("eyJ")) return true;
