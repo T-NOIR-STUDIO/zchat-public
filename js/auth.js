@@ -1,4 +1,3 @@
-// Khai báo biến Supabase an toàn, tránh trùng biến
 const SUPABASE_URL = "https://mttbznhwfedroiylqykc.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10dGJ6bmh3ZmVkcm9peWxxeWtjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NzkyMDIsImV4cCI6MjEwMTA1NTIwMn0.P7tsvdH-C3WThy81d3cWj0poQNANVsPmF4qVb1Bvruo";
 
