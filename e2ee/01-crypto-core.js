@@ -1,14 +1,11 @@
 /* ============================================================
  * 01-crypto-core.js
- * P-256 (ECDH) + AES-256-GCM helpers. SPKI / PKCS8 Base64 keys.
- * LOAD ĐẦU TIÊN — không phụ thuộc file khác.
  * ============================================================ */
 /**
  * ZChat E2EE — NIST P-256 ECIES-style + AES-256-GCM
- * Public:  SPKI Base64  (thường bắt đầu MFkwEwYHKoZIzj0...)
+ * Public:  SPKI Base64
  * Private: PKCS8 Base64
  */
-
 const global = (typeof window !== "undefined" ? window : globalThis);
 
 const ECDH_PARAMS = { name: "ECDH", namedCurve: "P-256" };
