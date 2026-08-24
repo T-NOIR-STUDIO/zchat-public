@@ -1,10 +1,4 @@
-/**
- * ZChat Passcode Lock
- * - Chưa có passcode trên server → Create + Confirm → lưu public.passcode
- * - Đã có → Enter passcode
- * - Unlock hợp lệ 50 giờ (localStorage zchat_passcode_unlocked_at)
- * - Sai 20 lần → khoá 30 giây
- */
+/* ZChat Passcode Lock*/
 (function () {
     "use strict";
 
