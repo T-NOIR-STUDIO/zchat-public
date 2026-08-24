@@ -2,7 +2,6 @@
  * 01-base-theme.css
  * Font chữ, reset html/body, biến CSS theme sáng/tối (--canvas, --ink, --hairline...), scrollbar mỏng, focus-visible, animation dùng chung (typing-dot, fade-in). LOAD ĐẦU TIÊN — mọi file khác đều dùng biến theme khai báo ở đây.
  * ============================================================ */
-/* Instrument Sans — bubble text + user names */
 @import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap");
 
 #messageFeed .rounded-bubble,
