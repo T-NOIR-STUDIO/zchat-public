@@ -1,10 +1,3 @@
-/**
- * Z-Chat WebRTC 1-1 Video Call client
- * - Fix WebRTC ICE connection between Chrome & Firefox
- * - Auto sync call termination (hangup / close tab / network drop)
- * - Fix Cloudflare __cf_bm cookie rejection on avatars
- * - Fix TURN Server failure across different networks
- */
 (function () {
     "use strict";
 
