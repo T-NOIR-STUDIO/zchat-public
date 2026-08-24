@@ -1,6 +1,6 @@
 /* ============================================================
  * 04-safety-number-verify.js
- * generateSafetyNumber (mã an toàn chống MITM) + markUserAsVerified/unmarkUserAsVerified/hasVerifiedUser (bảng verified_users). Phụ thuộc: 01.
+ * generateSafetyNumber
  * ============================================================ */
 async function generateSafetyNumber(myPublicKeyJwk, partnerPublicKeyJwk) {
     try {
