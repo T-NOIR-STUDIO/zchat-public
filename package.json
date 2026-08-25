@@ -1,0 +1,11 @@
+{
+  "name": "zchat",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i ./src/input.css -o ./css/tailwind.min.css --minify",
+    "watch:css": "tailwindcss -i ./src/input.css -o ./css/tailwind.min.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}
