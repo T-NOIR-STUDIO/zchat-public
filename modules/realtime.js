@@ -1,10 +1,7 @@
 /* ============================================================
  * 21-realtime.js
- * Lắng nghe Realtime Supabase: tin nhắn mới/sửa/xoá, đổ vào state + render. Phụ thuộc: hầu hết các file trên.
  * ============================================================ */
-/* ============ REALTIME (phải nằm trong IIFE để dùng được state) ============ */
-/* Kiểm tra 1 chat_id có thực sự thuộc về "me" hay không, tránh việc user khác
-   vô tình (hoặc realtime broadcast) làm lộ / gộp nhầm đoạn chat của 2 người khác. */
+/* ============ REALTIME ============ */
 function isChatIdMine(chatId, meLower) {
     if (!chatId || !meLower) return false;
     if (chatId.startsWith("saved_")) {
@@ -17,7 +14,6 @@ function isChatIdMine(chatId, meLower) {
         const rest = chatId.slice(5);
         return rest === meLower || rest.startsWith(meLower + "_") || rest.endsWith("_" + meLower);
     }
-    // Conversation uuid: chỉ khi đã biết (cache / state) — realtime sẽ verify thêm
     if (isUuid(chatId)) {
         if (conversationOtherName[chatId]) return true;
         if (state.chats.some((c) => c.id === chatId)) return true;
@@ -80,18 +76,15 @@ function subscribeToMessages() {
 
                     const me = (currentUsername || localStorage.getItem("zchat_username") || "").trim();
                     const meLower = me.toLowerCase();
-                    // KHÔNG fallback sang saved_ — thiếu chat_id thì bỏ qua
                     const chatId = newMsg.chat_id;
                     if (!chatId || !meLower) return;
-
-                    // Chặn: chỉ nhận chat của mình
+                   
                     let mine = isChatIdMine(chatId, meLower);
                     if (!mine && isUuid(chatId)) {
                         mine = await isConversationMineAsync(chatId);
                     }
                     if (!mine) return;
 
-                    // Không bao giờ nhét tin 1-1 vào Saved Messages
                     if (String(chatId).startsWith("saved_")) {
                         const uid = myUserIdCache || localStorage.getItem("zchat_user_id") || "";
                         if (!((uid && chatId === ("saved_" + uid)) || chatId === ("saved_" + meLower))) return;
@@ -99,7 +92,6 @@ function subscribeToMessages() {
 
                     let chat = state.chats.find((c) => c.id === chatId);
 
-                    // Chưa có chat → tạo mới (không phải Saved Messages trừ khi chat_id đúng saved_me)
                     if (!chat) {
                         let otherName;
                         if (String(chatId).startsWith("saved_")) {
@@ -111,7 +103,6 @@ function subscribeToMessages() {
                                 const resolved = await resolveOtherNameFromConversationId(chatId, myId);
                                 if (resolved) otherName = resolved;
                             }
-                            // Cuối cùng: dùng sender nếu không phải mình
                             if ((!otherName || otherName === "Chat User") &&
                                 newMsg.sender_id &&
                                 String(newMsg.sender_id) !== String(myIdNow())) {
@@ -274,9 +265,6 @@ function subscribeToMessages() {
             { event: "DELETE", schema: "public", table: "messages" },
             (payload) => {
                 try {
-                    // Mặc định Supabase chỉ gửi kèm "id" trong payload.old (không có chat_id),
-                    // nên mình tìm trực tiếp trong state.chats — vốn đã chỉ chứa chat của MÌNH rồi,
-                    // nên không lo lộ/xoá nhầm tin nhắn của người khác.
                     const deletedId = payload.old && payload.old.id;
                     if (!deletedId) return;
 
