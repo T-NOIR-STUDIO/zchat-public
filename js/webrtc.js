@@ -9,7 +9,6 @@
     const METERED_USER = window.ZCHAT_TURN_USER || "2bcc0de831c3742cc7c4c4aa";
     const METERED_PASS = window.ZCHAT_TURN_PASS || "fxTk7UPyGXEeDjN1";
 
-    // CẤU HÌNH SỬA: Tách riêng từng object URL cho TURN Server
     const ICE_SERVERS = {
         iceServers: [
             { urls: "stun:stun.l.google.com:19302" },
@@ -281,8 +280,7 @@
                 });
             }
         };
-
-        // SỬA HÀM NÀY: Bỏ ngắt cuộc gọi khi bị 'disconnected'
+        
         pc.oniceconnectionstatechange = () => {
             const st = pc && pc.iceConnectionState;
             console.log("[ZChatCall] iceConnectionState:", st);
@@ -317,7 +315,6 @@
             }
         };
 
-        // SỬA HÀM NÀY: Bỏ ngắt cuộc gọi khi 'disconnected'
         pc.onconnectionstatechange = () => {
             const st = pc && pc.connectionState;
             console.log("[ZChatCall] connectionState:", st);
