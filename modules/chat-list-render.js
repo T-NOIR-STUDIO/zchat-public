@@ -113,23 +113,35 @@ function isMobileView() {
 
 function openSidebar() {
     if (!sidebarWrap) return;
-    sidebarWrap.classList.remove("-translate-x-full");
+    sidebarWrap.classList.remove("sidebar-away");
+    sidebarWrap.classList.remove("-translate-x-full"); // legacy CDN
     if (sidebarScrim) sidebarScrim.classList.add("hidden");
-    // Trên mobile, quay lại danh sách chat thì hiện lại bottom nav + trả lại khoảng chừa cho nó
+    // Mobile: hiện lại bottom nav + khoảng chừa
     if (isMobileView() && bottomNav) {
+        bottomNav.classList.remove("nav-hidden-mobile");
         bottomNav.classList.remove("hidden");
-        if (appShell) appShell.classList.add("pb-[60px]");
+        if (appShell) {
+            appShell.classList.remove("app-shell-chat-open");
+            appShell.classList.add("pb-[60px]");
+        }
     }
 }
 function closeSidebar() {
-    // Chỉ ẩn list trên mobile khi vào chat; desktop luôn hiện list
+    // Mobile: trượt list chat ra ngoài + ẩn bottom nav; desktop luôn hiện list
     if (!sidebarWrap) return;
     if (isMobileView()) {
-        sidebarWrap.classList.add("-translate-x-full");
-        // Ẩn bottom nav khi đang mở 1 chat trên mobile, đồng thời bỏ khoảng chừa pb-[60px] để không còn khe hở
-        if (bottomNav) bottomNav.classList.add("hidden");
-        if (appShell) appShell.classList.remove("pb-[60px]");
+        sidebarWrap.classList.add("sidebar-away");
+        sidebarWrap.classList.add("-translate-x-full"); // legacy CDN
+        if (bottomNav) {
+            bottomNav.classList.add("nav-hidden-mobile");
+            bottomNav.classList.add("hidden");
+        }
+        if (appShell) {
+            appShell.classList.add("app-shell-chat-open");
+            appShell.classList.remove("pb-[60px]");
+        }
     } else {
+        sidebarWrap.classList.remove("sidebar-away");
         sidebarWrap.classList.remove("-translate-x-full");
     }
     if (sidebarScrim) sidebarScrim.classList.add("hidden");
@@ -143,13 +155,31 @@ window.addEventListener("resize", () => {
     if (!bottomNav) return;
     if (!isMobileView()) {
         bottomNav.classList.remove("hidden");
-        if (appShell) appShell.classList.add("pb-[60px]");
-    } else if (state.activeChatId && sidebarWrap && sidebarWrap.classList.contains("-translate-x-full")) {
+        bottomNav.classList.remove("nav-hidden-mobile");
+        if (sidebarWrap) sidebarWrap.classList.remove("sidebar-away");
+        if (appShell) {
+            appShell.classList.remove("app-shell-chat-open");
+            appShell.classList.add("pb-[60px]");
+        }
+    } else if (
+        state.activeChatId &&
+        sidebarWrap &&
+        (sidebarWrap.classList.contains("sidebar-away") ||
+            sidebarWrap.classList.contains("-translate-x-full"))
+    ) {
         bottomNav.classList.add("hidden");
-        if (appShell) appShell.classList.remove("pb-[60px]");
+        bottomNav.classList.add("nav-hidden-mobile");
+        if (appShell) {
+            appShell.classList.add("app-shell-chat-open");
+            appShell.classList.remove("pb-[60px]");
+        }
     } else {
         bottomNav.classList.remove("hidden");
-        if (appShell) appShell.classList.add("pb-[60px]");
+        bottomNav.classList.remove("nav-hidden-mobile");
+        if (appShell) {
+            appShell.classList.remove("app-shell-chat-open");
+            appShell.classList.add("pb-[60px]");
+        }
     }
 });
 
