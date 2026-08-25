@@ -1,7 +1,6 @@
 (function () {
     "use strict";
-
-    /* ============ I18N DICTIONARY (EN, VI, ZH, RU) ============ */
+    
     const i18n = {
         en: {
             backToChat: "Back to Chat",
