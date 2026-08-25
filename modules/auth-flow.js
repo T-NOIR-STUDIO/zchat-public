@@ -1,6 +1,5 @@
 /* ============================================================
  * 06-auth-flow.js
- * Đăng ký/Đăng nhập UI, enterApp() - điểm vào chính sau khi có username. Phụ thuộc: 03, 04, 05.
  * ============================================================ */
 function generateRecoveryPassword() {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
