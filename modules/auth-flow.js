@@ -36,8 +36,6 @@ function enterApp(username) {
     currentUsername = username;
     localStorage.setItem("zchat_username", username);
 
-    // Passcode: chưa unlock / hết 50h → recovery.html (Create hoặc Enter)
-    // recovery.js tự phân nhánh Create nếu chưa có trên server
     try {
         const TTL_MS = 50 * 60 * 60 * 1000;
         const unlockedAt = parseInt(localStorage.getItem("zchat_passcode_unlocked_at") || "0", 10) || 0;
@@ -64,7 +62,6 @@ function enterApp(username) {
     }
 
     syncProfileData();
-    // Đồng bộ avatar từ tài khoản (Supabase) — mọi thiết bị / trình duyệt cùng 1 ảnh
     syncMyAvatarFromServer(username);
     applyLanguage();
     renderChatList();
