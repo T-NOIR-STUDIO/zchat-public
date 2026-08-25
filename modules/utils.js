@@ -1,6 +1,5 @@
 /* ============================================================
  * 02-utils.js
- * Hàm tiện ích thuần (uid, initials, escapeHtml, format ngày giờ, colorFor...). Không phụ thuộc file nào khác.
  * ============================================================ */
 function uid(prefix) {
     return prefix + "_" + Math.random().toString(36).slice(2, 10);
