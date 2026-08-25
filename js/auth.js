@@ -6,13 +6,6 @@ if (typeof window.supabaseClient === "undefined") {
 }
 var supabase = window.supabaseClient;
 
-/**
- * Đảm bảo trình duyệt hiện tại có 1 phiên đăng nhập ẩn danh thật (auth.uid())
- * từ Supabase Auth. Đây là điều kiện bắt buộc để các hàm RPC register_user /
- * verify_login hoạt động (chúng cần auth.uid() để gắn thiết bị vào tài khoản).
- * Supabase tự lưu session này (localStorage riêng của supabase-js), nên các
- * lần load trang sau sẽ tự khôi phục lại, không tạo phiên mới liên tục.
- */
 async function ensureAnonSession() {
     try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -27,7 +20,6 @@ async function ensureAnonSession() {
 }
 window.zchatEnsureAnonSession = ensureAnonSession;
 
-/** Xóa avatar local — tránh account mới dính ảnh account cũ */
 function clearLocalAvatar() {
     [
         "zchat_avatar_type",
@@ -37,13 +29,11 @@ function clearLocalAvatar() {
     ].forEach((k) => localStorage.removeItem(k));
 }
 
-/** Lưu session đồng bộ cho index / settings / profile — avatar lấy theo tài khoản trên server */
 function saveSession(user, opts) {
     if (!user || !user.username) return;
     const isNewRegister = opts && opts.isNewRegister;
     clearLocalAvatar();
     if (!isNewRegister) {
-        // Đồng bộ avatar từ tài khoản (login trên PC / điện thoại / trình duyệt khác)
         if (user.avatar_type) localStorage.setItem("zchat_avatar_type", user.avatar_type);
         if (user.avatar_color) localStorage.setItem("zchat_avatar_color", user.avatar_color);
         if (user.avatar_emoji) localStorage.setItem("zchat_avatar_emoji", user.avatar_emoji);
@@ -58,8 +48,6 @@ function saveSession(user, opts) {
     if (user.id) localStorage.setItem("zchat_user_id", user.id);
     localStorage.setItem("zchat_user", JSON.stringify(user));
 }
-
-/** Vào app: ưu tiên hàm enterApp của main.js nếu đã load */
 function enterChatApp(username) {
     if (typeof window.zchatEnterApp === "function") {
         window.zchatEnterApp(username);
@@ -75,7 +63,6 @@ function enterChatApp(username) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-    // Bắt buộc phải có phiên ẩn danh trước khi cho phép đăng ký/đăng nhập
     await ensureAnonSession();
 
     const onboardingForm = document.getElementById("onboardingForm");
@@ -92,7 +79,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const copyRecoveryBtn = document.getElementById("copyRecoveryBtn");
     const recoveryContinueBtn = document.getElementById("recoveryContinueBtn");
 
-    // Chuyển đổi View
     if (switchToLoginBtn) {
         switchToLoginBtn.addEventListener("click", () => {
             onboardingForm?.classList.add("hidden");
@@ -116,7 +102,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         return "zChat-" + part(4) + "-" + part(4);
     }
 
-    // ĐĂNG KÝ
     if (onboardingForm) {
         onboardingForm.addEventListener("submit", async (e) => {
             e.preventDefault();
@@ -131,7 +116,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const recoveryPassword = generateRecoveryPassword();
 
             try {
-                await ensureAnonSession(); // đảm bảo chắc chắn đã có session trước khi gọi RPC
+                await ensureAnonSession();
 
                 let public_key = null, private_key = null;
                 if (window.ZChatE2EE) {
@@ -166,10 +151,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                     loginError.classList.remove("hidden");
                 }
             }
-        }, true); // capture so it runs before main.js handler
+        }, true);
     }
 
-    // ĐĂNG NHẬP
     if (loginForm) {
         loginForm.addEventListener("submit", async (e) => {
             e.preventDefault();
@@ -229,7 +213,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         }, true);
     }
 
-    // COPY recovery
     if (copyRecoveryBtn) {
         copyRecoveryBtn.addEventListener("click", async () => {
             const textToCopy = recoveryPasswordDisplay ? recoveryPasswordDisplay.textContent.trim() : "";
@@ -255,12 +238,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    // Continue after register
     if (recoveryContinueBtn) {
         recoveryContinueBtn.addEventListener("click", () => {
             const u = localStorage.getItem("zchat_username") || "";
             if (recoveryModal) recoveryModal.classList.add("hidden");
-            // Hết hạn unlock → enterApp sẽ đẩy sang recovery.html (Create passcode)
             localStorage.removeItem("zchat_passcode_unlocked_at");
             enterChatApp(u);
         });
