@@ -1,7 +1,6 @@
 /* ============================================================
  * 21-realtime.js
  * ============================================================ */
-/* ============ REALTIME ============ */
 function isChatIdMine(chatId, meLower) {
     if (!chatId || !meLower) return false;
     if (chatId.startsWith("saved_")) {
