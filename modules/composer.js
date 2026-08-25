@@ -1,6 +1,5 @@
 /* ============================================================
  * 17-composer.js
- * O nhap tin nhan: gui tin, emoji picker, resize khung nhap. Phu thuoc: 02, 03, 04, 09, 19 (goi ham o file sau, hop le vi cung runtime).
  * ============================================================ */
 function updateSendBtnState() {
     sendBtn.disabled = messageInput.value.trim().length === 0;
@@ -19,7 +18,6 @@ function autoResizeMessageInput() {
     messageInput.style.maxHeight = "none";
     messageInput.style.overflowY = "hidden";
 
-    // Baseline 1 dòng — 1 ký tự không còn bị giãn
     messageInput.value = "M";
     messageInput.style.height = "0px";
     const oneLineScroll = messageInput.scrollHeight;
@@ -66,11 +64,9 @@ async function handleSend() {
     const chat = state.chats.find((c) => c.id === state.activeChatId);
     if (!chat) return;
 
-    // Trường hợp đang chỉnh sửa tin nhắn cũ (Edit Mode)
     if (editingMsgId) {
         const msg = chat.messages.find((m) => m.id === editingMsgId);
         if (msg) {
-            // Giữ nguyên phần "đang trả lời ai" (nếu có) khi sửa nội dung
             const { replyId, replySender, replyPreview } = parseReply(msg.text || "");
             const newText = replyId ? buildReplyPrefix(replyId, replySender, replyPreview) + text : text;
 
@@ -94,7 +90,6 @@ async function handleSend() {
         return;
     }
 
-    // Trường hợp gửi tin nhắn mới
     let finalText = text;
     if (replyingMsgId) {
         const repliedMsg = chat.messages.find((m) => m.id === replyingMsgId);
