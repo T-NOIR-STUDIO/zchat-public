@@ -2,6 +2,7 @@
  * 01-base-theme.css
  * Font chữ, reset html/body, biến CSS theme sáng/tối (--canvas, --ink, --hairline...), scrollbar mỏng, focus-visible, animation dùng chung (typing-dot, fade-in). LOAD ĐẦU TIÊN — mọi file khác đều dùng biến theme khai báo ở đây.
  * ============================================================ */
+/* Instrument Sans — bubble text + user names */
 @import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap");
 
 #messageFeed .rounded-bubble,
@@ -72,4 +73,33 @@ textarea { field-sizing: content; }
 @keyframes fade-in {
     0% { opacity: 0; transform: translateY(4px); }
     100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ZChat mobile: sidebar slide (không phụ thuộc Tailwind purge) */
+#sidebarWrap {
+    transition: transform 0.2s ease;
+}
+@media (max-width: 767.98px) {
+    #sidebarWrap.sidebar-away {
+        transform: translateX(-100%);
+        pointer-events: none;
+    }
+    #appShell.app-shell-chat-open {
+        padding-bottom: 0 !important;
+    }
+    #appShell:not(.app-shell-chat-open) {
+        padding-bottom: 60px;
+    }
+    #bottomNav.nav-hidden-mobile {
+        display: none !important;
+    }
+}
+@media (min-width: 768px) {
+    #sidebarWrap.sidebar-away {
+        transform: none;
+        pointer-events: auto;
+    }
+    #bottomNav.nav-hidden-mobile {
+        display: flex !important;
+    }
 }
