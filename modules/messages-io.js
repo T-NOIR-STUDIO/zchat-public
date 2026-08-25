@@ -1,6 +1,5 @@
 /* ============================================================
  * 19-messages-io.js
- * Giao tiếp Supabase cho tin nhắn: load lịch sử, gửi tin (bao gồm E2EE encrypt/decrypt). Phụ thuộc: 02-04, 09, 12.
  * ============================================================ */
 /* ============ SUPABASE MESSAGES ============ */
 function makeUuid() {
