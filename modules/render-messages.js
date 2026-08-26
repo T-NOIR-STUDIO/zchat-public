@@ -1,6 +1,5 @@
 /* ============================================================
  * 12-render-messages.js
- * Render khung tin nhắn (bong bóng chat) + typing indicator. Phụ thuộc: 02, 03, 04, 05, 09, 11.
  * ============================================================ */
 function renderMessages(chat) {
     const msgs = chat.messages;
@@ -70,33 +69,39 @@ function renderMessages(chat) {
         }
 
         let shortReplyPrev = String(replyPreview || "").replace(/\s+/g, " ").trim();
-        if (shortReplyPrev.length > 72) shortReplyPrev = shortReplyPrev.slice(0, 72).trimEnd() + "…";
+        // Bỏ prefix ảnh nếu lỡ lưu text
+        if (shortReplyPrev.startsWith("[IMAGE]:")) shortReplyPrev = "Photo";
+        if (shortReplyPrev.length > 48) shortReplyPrev = shortReplyPrev.slice(0, 48).trimEnd() + "…";
 
         const replyImgUrl = replyId ? resolveReplyImageUrl(replyId, chat) : null;
         const replyNameLabel = (replySender || "").trim() || "User";
+        const replyArrowSvg = `<span class="msg-reply-arrow" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"></polyline><path d="M20 20v-7a4 4 0 0 0-4-4H4"></path></svg></span>`;
         let replyQuoteHtml = "";
         let replyThumbHtml = "";
         if (replyId) {
             if (replyImgUrl) {
-                replyThumbHtml = `<div class="msg-reply-quote msg-reply-quote--image" data-reply-target="${escapeHtml(String(replyId))}">
+                // Ảnh: giữ layout cũ, căn sát rìa trong (mine → start/cạnh giữa; peer → end)
+                const imgAlign = isMine ? "msg-reply-inner-mine" : "msg-reply-inner-peer";
+                replyThumbHtml = `<div class="msg-reply-quote msg-reply-quote--image ${imgAlign}" data-reply-target="${escapeHtml(String(replyId))}">
                         <div class="msg-reply-image-head">
-                            <span class="msg-reply-image-icon" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"></polyline><path d="M20 20v-7a4 4 0 0 0-4-4H4"></path></svg></span>
+                            ${replyArrowSvg}
                             <span class="msg-reply-image-name">${escapeHtml(replyNameLabel)}</span>
                         </div>
                         <img src="${escapeHtml(replyImgUrl)}" class="msg-reply-thumb" alt="Photo" loading="lazy" />
                     </div>`;
             } else {
-                replyQuoteHtml = `<div class="msg-reply-quote flex flex-col gap-0.5 mb-1" data-reply-target="${escapeHtml(String(replyId))}">
-                     <span class="text-[11px] font-semibold" style="color: var(--ink); opacity: .85;">${escapeHtml(replySender)}</span>
-                     <span class="text-[11px] opacity-70 msg-reply-preview" style="color: var(--ink);">${escapeHtml(shortReplyPrev)}</span>
+                // Text: icon mũi tên + tên, preview rút gọn …
+                replyQuoteHtml = `<div class="msg-reply-quote" data-reply-target="${escapeHtml(String(replyId))}">
+                     <div class="msg-reply-head">${replyArrowSvg}<span class="msg-reply-name">${escapeHtml(replyNameLabel)}</span></div>
+                     <span class="msg-reply-preview">${escapeHtml(shortReplyPrev)}</span>
                    </div>`;
             }
         }
 
-        // Nút menu 3 chấm — neo theo bong bóng (không tính hàng Seen)
+        // Nút menu 3 chấm — luôn hiện (mờ), rõ hơn khi hover / touch
         const menuBtnHtml = `
-                <button type="button" class="btn-msg-menu absolute top-1/2 -translate-y-1/2 ${isMine ? "-left-9" : "-right-9"} flex h-7 w-7 items-center justify-center rounded-full opacity-70 hover:opacity-100 hover:bg-elevated2 transition-all z-10" style="color: #ffffff;" title="More">
-                    <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                <button type="button" class="btn-msg-menu absolute top-1/2 -translate-y-1/2 ${isMine ? "-left-9" : "-right-9"} flex h-7 w-7 items-center justify-center rounded-full opacity-50 hover:opacity-100 hover:bg-elevated2 transition-all z-10" style="color: var(--muted);" title="More">
+                    <i data-lucide="more-vertical" class="w-4 h-4"></i>
                 </button>`;
 
         const bubbleInner = isImageMsg
@@ -123,12 +128,10 @@ function renderMessages(chat) {
 
         wrap.innerHTML = `
         <div class="relative flex max-w-[72%] min-w-0 flex-col gap-1.5 ${isMine ? "items-end" : "items-start"}">
-          <div class="relative msg-bubble-row">
-            ${menuBtnHtml}
-            ${attachmentHtml}
-            ${replyThumbHtml}
-            ${bubble}
-          </div>
+          ${menuBtnHtml}
+          ${attachmentHtml}
+          ${replyThumbHtml}
+          ${bubble}
           ${meta}
         </div>`;
 
