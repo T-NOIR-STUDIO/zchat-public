@@ -1,8 +1,6 @@
 /* ============================================================
  * 11-reply-image.css
- * Khối trích dẫn Reply khi tin gốc là ẢNH (icon + tên + thumbnail nhỏ).
  * ============================================================ */
-/* Reply ảnh: icon + tên mỏng + ảnh nhỏ, không kéo bubble */
 .msg-reply-quote--image {
     padding: 0 !important;
     background: transparent !important;
