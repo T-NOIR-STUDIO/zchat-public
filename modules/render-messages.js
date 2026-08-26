@@ -96,7 +96,7 @@ function renderMessages(chat) {
         // Nút menu 3 chấm — luôn hiện (mờ), rõ hơn khi hover / touch
         const menuBtnHtml = `
                 <button type="button" class="btn-msg-menu absolute top-1/2 -translate-y-1/2 ${isMine ? "-left-9" : "-right-9"} flex h-7 w-7 items-center justify-center rounded-full opacity-50 hover:opacity-100 hover:bg-elevated2 transition-all z-10" style="color: var(--muted);" title="More">
-                    <i data-lucide="more-vertical" class="w-4 h-4"></i>
+                    <i data-lucide="more-horizontal" class="w-4 h-4"></i>
                 </button>`;
 
         const bubbleInner = isImageMsg
@@ -121,9 +121,8 @@ function renderMessages(chat) {
                 ? `<div class="flex items-center gap-1 px-1 text-[11px]" style="color: var(--faint);">${timerIcon}</div>`
                 : "");
 
-        const colGap = replyThumbHtml ? "gap-1" : "gap-1.5";
         wrap.innerHTML = `
-        <div class="relative flex max-w-[72%] min-w-0 flex-col ${colGap} ${isMine ? "items-end" : "items-start"}">
+        <div class="relative flex max-w-[72%] min-w-0 flex-col gap-1.5 ${isMine ? "items-end" : "items-start"}">
           ${menuBtnHtml}
           ${attachmentHtml}
           ${replyThumbHtml}
