@@ -34,23 +34,55 @@
 .msg-action-item .msg-action-icon { width: 15px; height: 15px; opacity: .75; flex-shrink: 0; }
 
 .msg-reply-quote {
-    border-left: 3px solid var(--transparent-border);
-    background-color: rgba(127,127,127,0.12);
+    border-left: 3px solid rgba(255,255,255,0.45);
+    background-color: rgba(127,127,127,0.14);
     border-radius: 8px;
-    padding: 5px 10px;
+    padding: 6px 10px;
+    margin-bottom: 4px;
     cursor: pointer;
     transition: background-color .12s ease;
     max-width: 100%;
     min-width: 0;
     overflow: hidden;
 }
-.msg-reply-quote:hover { background-color: rgba(127,127,127,0.2); }
+.msg-reply-quote:hover { background-color: rgba(127,127,127,0.22); }
+.msg-reply-head {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    margin-bottom: 2px;
+}
+.msg-reply-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    opacity: 0.9;
+}
+.msg-reply-arrow svg {
+    display: block;
+    width: 13px;
+    height: 13px;
+}
+.msg-reply-name {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
 .msg-reply-quote .msg-reply-preview {
     display: block;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: 12px;
+    line-height: 1.3;
+    opacity: 0.8;
 }
 
 /* Bubble tin dài: xuống dòng, không mất chữ / không tràn ngang */
@@ -84,4 +116,15 @@
     40% { transform: translateX(8px); }
     60% { transform: translateX(-5px); }
     80% { transform: translateX(5px); }
+}
+
+/* Reply quote trong bubble nhận (không phải tin mình) */
+#messageFeed .justify-start .msg-reply-quote {
+    border-left-color: rgba(27, 152, 224, 0.75);
+}
+#messageFeed .justify-start .msg-reply-name {
+    color: #1b98e0;
+}
+#messageFeed .justify-start .msg-reply-arrow {
+    color: #1b98e0;
 }
