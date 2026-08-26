@@ -1,6 +1,5 @@
 /* ============================================================
  * 12-render-messages.js
- * Render khung tin nhắn (bong bóng chat) + typing indicator. Phụ thuộc: 02, 03, 04, 05, 09, 11.
  * ============================================================ */
 function renderMessages(chat) {
     const msgs = chat.messages;
