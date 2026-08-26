@@ -1,6 +1,8 @@
 /* ============================================================
  * 11-reply-image.css
+ * Khối trích dẫn Reply khi tin gốc là ẢNH (icon + tên + thumbnail nhỏ).
  * ============================================================ */
+/* Reply ảnh: icon + tên mỏng + ảnh nhỏ, không kéo bubble */
 .msg-reply-quote--image {
     padding: 0 !important;
     background: transparent !important;
@@ -12,6 +14,7 @@
     display: flex;
     flex-direction: column;
     gap: 3px;
+    margin-bottom: 2px;
 }
 .msg-reply-image-head {
     display: flex;
@@ -46,10 +49,10 @@
     display: block;
     width: auto;
     height: auto;
-    max-width: 80px;
-    max-height: 80px;
-    object-fit: contain;
-    border-radius: 12px;
+    max-width: 72px;
+    max-height: 72px;
+    object-fit: cover;
+    border-radius: 10px;
     border: 1px solid rgba(127,127,127,0.35);
 }
 #messageFeed .msg-bubble-pressable,
@@ -63,21 +66,16 @@
     font-weight: 400 !important;
 }
 
-/* Ảnh reply sát rìa trong (không kéo ra rìa ngoài) */
-#messageFeed .justify-end .msg-reply-quote--image.msg-reply-inner-mine {
-    align-self: flex-start;
-    margin-right: auto;
-    margin-left: 0;
-}
-#messageFeed .justify-start .msg-reply-quote--image.msg-reply-inner-peer {
+/* Căn ảnh reply cùng phía bubble, không lệch giữa màn hình */
+#messageFeed .justify-end .msg-reply-quote--image {
     align-self: flex-end;
-    margin-left: auto;
+    margin-left: 0;
     margin-right: 0;
+    max-width: 80px;
 }
-.msg-reply-quote--image .msg-reply-arrow {
-    display: inline-flex;
-    color: var(--muted);
-}
-.msg-reply-quote--image .msg-reply-thumb {
-    margin: 0;
+#messageFeed .justify-start .msg-reply-quote--image {
+    align-self: flex-start;
+    margin-left: 0;
+    margin-right: 0;
+    max-width: 80px;
 }
