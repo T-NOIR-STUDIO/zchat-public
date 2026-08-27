@@ -2,7 +2,7 @@
  * 04-bubble-send-colors.css
  * ============================================================ */
 #messageFeed .justify-end .rounded-bubble {
-    background-color: #1c9bef !important;
+    background-color: #1c9bf0 !important;
     color: #ffffff !important;
 }
 #messageFeed .justify-end .rounded-bubble .msg-reply-quote,
