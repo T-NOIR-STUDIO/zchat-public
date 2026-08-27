@@ -3,7 +3,7 @@
  * Màu bong bóng chat của mình (xanh dương) + màu nút Send.
  * ============================================================ */
 #messageFeed .justify-end .rounded-bubble {
-    background-color: #1b98e0 !important;
+    background-color: #1c9bef !important;
     color: #ffffff !important;
 }
 #messageFeed .justify-end .rounded-bubble .msg-reply-quote,
