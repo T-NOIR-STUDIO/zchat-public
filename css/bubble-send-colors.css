@@ -14,3 +14,6 @@
     background-color: #1b98e0 !important;
     color: #ffffff !important;
 }
+#messageFeed .rounded-bubble {
+    font-weight: 400 !important;
+}
