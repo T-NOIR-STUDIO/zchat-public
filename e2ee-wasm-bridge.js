@@ -1,7 +1,6 @@
 (async function () {
     "use strict";
 
-    // Đúng path theo folder của bạn: crypto/pkg/zchat_crypto.js
     const PKG_URL = window.ZCHAT_E2EE_WASM_URL || new URL("crypto/pkg/zchat_crypto.js", window.location.href).href;
 
     let wasm = null;
@@ -9,7 +8,6 @@
     async function loadWasm() {
         if (wasm) return wasm;
         const mod = await import(PKG_URL);
-        // wasm-pack default export = init()
         if (typeof mod.default === "function") {
             await mod.default();
         }
@@ -59,7 +57,6 @@
         if (ensurePure) {
             bundle = ensurePure(existingPub, existingPriv, String(userId || ""));
         } else {
-            // Fallback: dùng key trên server / local
             if (existingPub && existingPriv) {
                 if (cache) cache(existingPub, existingPriv);
                 else {
