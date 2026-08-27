@@ -1,0 +1,30 @@
+[package]
+name = "zchat-crypto"
+version = "0.2.0"
+edition = "2021"
+description = "ZChat E2EE — P-256 ECDH + XSalsa20-Poly1305 (wasm-bindgen)"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[dependencies]
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+base64 = "0.22"
+sha2 = "0.10"
+p256 = { version = "0.13", features = ["ecdh", "pkcs8"] }
+elliptic-curve = { version = "0.13", features = ["sec1"] }
+pkcs8 = { version = "0.10", features = ["alloc", "pem"] }
+sec1 = { version = "0.7", features = ["alloc"] }
+xsalsa20poly1305 = "0.9"
+aead = "0.5"
+rand_core = { version = "0.6", features = ["getrandom"] }
+getrandom = { version = "0.2", features = ["js"] }
+hex = "0.4"
+
+[profile.release]
+opt-level = "s"
+lto = true

@@ -1,0 +1,16 @@
+{
+  "name": "zchat-crypto",
+  "type": "module",
+  "description": "ZChat E2EE — P-256 ECDH + XSalsa20-Poly1305 (wasm-bindgen)",
+  "version": "0.2.0",
+  "files": [
+    "zchat_crypto_bg.wasm",
+    "zchat_crypto.js",
+    "zchat_crypto.d.ts"
+  ],
+  "main": "zchat_crypto.js",
+  "types": "zchat_crypto.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
