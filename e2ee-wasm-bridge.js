@@ -1,13 +1,3 @@
-/**
- * e2ee-wasm-bridge.js
- * Nối Rust WASM (crypto/pkg/zchat_crypto.*) → window.ZChatE2EE
- *
- * index.html:
- *   <script type="module" src="e2ee-wasm-bridge.js"></script>
- *   (hoặc path tương ứng, VD: js/e2ee-wasm-bridge.js)
- *
- * Không load file .rs trên trình duyệt.
- */
 (async function () {
     "use strict";
 
@@ -24,7 +14,7 @@
             await mod.default();
         }
         wasm = mod;
-        console.log("[E2EE] Rust WASM loaded from", PKG_URL);
+        console.log("[E2EE] Rust WASM loaded");
         return wasm;
     }
 
