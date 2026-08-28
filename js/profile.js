@@ -326,20 +326,7 @@
             avatarPreview.style.backgroundColor = draft.avatarType === "emoji" ? "var(--elevated2)" : draft.avatarColor;
             avatarPreview.textContent = draft.avatarType === "emoji" ? draft.avatarEmoji : initials(draft.username || savedUsername);
         }
-        if (presenceDotPreview) {
-            presenceDotPreview.style.backgroundColor = PRESENCE_COLORS[draft.presence] || PRESENCE_COLORS.online;
-        }
-        const navAv = document.getElementById("profileAvatar");
-        if (navAv) {
-            if (draft.avatarType === "photo" && draft.avatarUrl) {
-                navAv.style.backgroundColor = "var(--elevated2)";
-                navAv.innerHTML = `<img src="${draft.avatarUrl}" alt="" class="h-full w-full rounded-full object-cover" />`;
-            } else {
-                navAv.style.backgroundColor = draft.avatarType === "emoji" ? "var(--elevated2)" : (draft.avatarColor || "var(--elevated2)");
-                navAv.style.color = "var(--ink)";
-                navAv.textContent = draft.avatarType === "emoji" ? draft.avatarEmoji : initials(draft.username || savedUsername);
-            }
-        }
+        if (presenceDotPreview) { presenceDotPreview.style.display = "none"; }
     }
 
     function renderPresenceButtons() {
@@ -355,17 +342,22 @@
     }
 
     function renderTheme() {
-        document.documentElement.setAttribute("data-theme", draft.theme);
-        const isLight = draft.theme === "light";
+        const theme = draft.theme === "light" ? "light" : "dark";
+        draft.theme = theme;
+        document.documentElement.setAttribute("data-theme", theme);
+        if (document.body) document.body.setAttribute("data-theme", theme);
+        const isLight = theme === "light";
         const lang = localStorage.getItem("zchat_lang") || "en";
         const dict = i18n[lang] || i18n.en;
-
-        themeSwitch.setAttribute("aria-checked", String(isLight));
-        themeSwitch.dataset.on = String(isLight);
-        themeSwitch.querySelector(".switch-thumb").style.transform = isLight ? "translateX(20px)" : "translateX(0)";
-        themeIcon.setAttribute("data-lucide", isLight ? "sun" : "moon");
-        themeLabel.textContent = isLight ? dict.lightMode : dict.darkMode;
-        icons();
+        if (themeSwitch) {
+            themeSwitch.setAttribute("aria-checked", String(isLight));
+            themeSwitch.dataset.on = String(isLight);
+            const thumb = themeSwitch.querySelector(".switch-thumb");
+            if (thumb) thumb.style.transform = isLight ? "translateX(20px)" : "translateX(0)";
+        }
+        if (themeIcon) themeIcon.setAttribute("data-lucide", isLight ? "sun" : "moon");
+        if (themeLabel) themeLabel.textContent = isLight ? dict.lightMode : dict.darkMode;
+        try { icons(); } catch (_) {}
     }
 
     function buildColorSwatches() {
@@ -416,7 +408,7 @@
 
     /* ============ INIT FORM VALUES ============ */
     usernameField.value = saved.username;
-    bioField.value = saved.bio;
+    if (bioField) bioField.value = saved.bio;
     buildColorSwatches();
     buildEmojiSwatches();
     renderAvatarPreview();
@@ -432,9 +424,11 @@
         if (usernameField.value.trim()) usernameError.classList.add("hidden");
     });
 
-    bioField.addEventListener("input", () => {
-        draft.bio = bioField.value;
-    });
+    if (bioField) {
+        bioField.addEventListener("input", () => {
+            draft.bio = bioField.value;
+        });
+    }
 
     changeAvatarBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -583,10 +577,12 @@
         });
     });
 
-    themeSwitch.addEventListener("click", () => {
-        draft.theme = draft.theme === "light" ? "dark" : "light";
-        renderTheme();
-    });
+    if (themeSwitch) {
+        themeSwitch.addEventListener("click", () => {
+            draft.theme = draft.theme === "light" ? "dark" : "light";
+            renderTheme();
+        });
+    }
 
     let toastTimeout = null;
     function showToast(message) {
@@ -612,7 +608,7 @@
             return;
         }
 
-        localStorage.setItem("zchat_bio", bioField.value.trim() || "Available");
+        localStorage.setItem("zchat_bio", (bioField && bioField.value.trim()) || draft.bio || "Available");
         localStorage.setItem("zchat_presence", draft.presence);
         localStorage.setItem("zchat_avatar_type", draft.avatarType);
         localStorage.setItem("zchat_avatar_color", draft.avatarColor);
