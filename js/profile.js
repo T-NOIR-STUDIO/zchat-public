@@ -115,12 +115,7 @@
         const headerTitle = document.querySelector("header h1");
         if (headerTitle) headerTitle.textContent = dict.editProfile;
 
-        const changeAvatarBtnLabel = document.getElementById("changeAvatarBtnLabel");
-        if (changeAvatarBtnLabel) changeAvatarBtnLabel.textContent = dict.changeAvatar;
-        else if (changeAvatarBtn) {
-            const sp = changeAvatarBtn.querySelector("span");
-            if (sp) sp.textContent = dict.changeAvatar;
-        }
+        if (changeAvatarBtn) changeAvatarBtn.childNodes[2].textContent = " " + dict.changeAvatar;
 
         const tabColor = document.querySelector('.avatar-tab[data-avatar-tab="color"]');
         if (tabColor) tabColor.textContent = dict.colorTab;
@@ -331,8 +326,9 @@
             avatarPreview.style.backgroundColor = draft.avatarType === "emoji" ? "var(--elevated2)" : draft.avatarColor;
             avatarPreview.textContent = draft.avatarType === "emoji" ? draft.avatarEmoji : initials(draft.username || savedUsername);
         }
-        presenceDotPreview.style.backgroundColor = PRESENCE_COLORS[draft.presence] || PRESENCE_COLORS.online;
-        // Navbar avatar (PC)
+        if (presenceDotPreview) {
+            presenceDotPreview.style.backgroundColor = PRESENCE_COLORS[draft.presence] || PRESENCE_COLORS.online;
+        }
         const navAv = document.getElementById("profileAvatar");
         if (navAv) {
             if (draft.avatarType === "photo" && draft.avatarUrl) {
