@@ -22,9 +22,9 @@
         #themeSwitch[data-on="true"] .switch-thumb {
             background-color: #fff !important;
         }
-    
+
         #presenceDotPreview { display: none !important; }
-</style>
+    </style>
 </head>
 
 <body class="h-full font-body overflow-hidden" style="background-color: var(--canvas); color: var(--ink);">
@@ -142,33 +142,6 @@
                                style="background-color: var(--elevated); color: var(--ink);" />
                         <p id="usernamePreview" class="text-xs" style="color: var(--faint);"></p>
                         <p id="usernameError" class="hidden text-xs" style="color: var(--dnd);">Username can't be empty.</p>
-                    </section>
-
-                    <!-- Bio / Status -->
-                    <section class="flex flex-col gap-2">
-                        <label for="bioField" class="text-sm font-semibold">Status</label>
-                        <input id="bioField" type="text" maxlength="60" placeholder="e.g. Available, In a meeting..."
-                               class="w-full rounded-2xl px-4 py-3 text-sm focus:outline-none"
-                               style="background-color: var(--elevated); color: var(--ink);" />
-                        <p id="statusDesc" class="text-xs" style="color: var(--faint);">Shown to others alongside your name.</p>
-                    </section>
-
-                    <!-- Appearance -->
-                    <section class="flex flex-col gap-3">
-                        <span id="appearanceLabel" class="text-sm font-semibold">Appearance</span>
-                        <div class="flex items-center justify-between rounded-2xl px-4 py-3" style="background-color: var(--elevated);">
-                            <div class="flex items-center gap-3">
-                                <i id="themeIcon" data-lucide="moon" class="w-[18px] h-[18px]"></i>
-                                <div>
-                                    <p id="themeTitle" class="text-sm font-medium">Theme</p>
-                                    <p id="themeLabel" class="text-xs" style="color: var(--faint);">Dark mode</p>
-                                </div>
-                            </div>
-                            <button type="button" id="themeSwitch" role="switch" aria-checked="false"
-                                    class="switch-track relative h-7 w-12 shrink-0 rounded-pill transition-colors" data-on="false">
-                                <span class="switch-thumb absolute top-1 left-1 h-5 w-5 rounded-full"></span>
-                            </button>
-                        </div>
                     </section>
 
                     <!-- Save Action Button -->
