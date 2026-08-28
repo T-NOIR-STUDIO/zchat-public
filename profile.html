@@ -11,9 +11,35 @@
     <link rel="icon" href="/assets/img/favicon-32.png" type="image/png" sizes="any" />
     <link rel="icon" href="/assets/img/favicon-16.png" type="image/png" sizes="any" />
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/img/apple-touch-icon.png" />
-    <link rel="stylesheet" href="css/tailwind.min.css">
     <link rel="stylesheet" href="css/style.css">
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ["Manrope", "sans-serif"],
+                        body: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        pill: "999px",
+                        bubble: "20px",
+                    },
+                    keyframes: {
+                        "fade-in": {
+                            "0%": { opacity: 0, transform: "translateY(4px)" },
+                            "100%": { opacity: 1, transform: "translateY(0)" },
+                        },
+                    },
+                    animation: {
+                        "fade-in": "fade-in .18s ease-out",
+                    },
+                },
+            },
+        };
+    </script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
 
 <body class="h-full font-body">
