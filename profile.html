@@ -24,6 +24,10 @@
         }
 
         #presenceDotPreview { display: none !important; }
+        #avatarPopover { min-width: 22rem; }
+        #avatarPopover .color-swatch { width: 2.5rem !important; height: 2.5rem !important; }
+        #avatarPopover .emoji-swatch { font-size: 1.35rem !important; padding: 0.45rem !important; }
+        #avatarPopover .avatar-tab { font-size: 0.8rem !important; padding-top: 0.45rem !important; padding-bottom: 0.45rem !important; }
     </style>
 </head>
 
@@ -110,7 +114,7 @@
                             </button>
 
                             <!-- Avatar picker popover -->
-                            <div id="avatarPopover" class="hidden absolute left-1/2 top-full z-20 mt-2 w-72 -translate-x-1/2 rounded-2xl p-3 shadow-2xl"
+                            <div id="avatarPopover" class="hidden absolute left-1/2 top-full z-20 mt-2 w-96 -translate-x-1/2 rounded-2xl p-4 shadow-2xl"
                                  style="background-color: var(--elevated); border: 1px solid var(--hairline);">
                                 <div class="mb-3 flex gap-1 rounded-pill p-1" style="background-color: var(--elevated2);">
                                     <button type="button" data-avatar-tab="color" class="avatar-tab flex-1 rounded-pill py-1.5 text-xs font-semibold transition-colors">Color</button>
