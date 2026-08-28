@@ -14,102 +14,211 @@
     <link rel="stylesheet" href="css/style.css">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <style>
+        #profileAvatar {
+            overflow: hidden;
+            background: var(--elevated2);
+            color: var(--ink);
+        }
+        #profileAvatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .pf-page { max-width: 420px; margin: 0 auto; padding: 24px 16px 48px; }
+        @media (min-width: 640px) {
+            .pf-page { padding: 36px 24px 56px; }
+            #bottomNav {
+                border-top: none !important;
+                border-right: 1px solid var(--hairline);
+            }
+        }
         .pf-hero {
-            position: relative;
-            border-radius: 24px;
-            overflow: visible;
-            background: linear-gradient(165deg, var(--elevated2) 0%, var(--elevated) 50%, var(--surface, #0a0a0a) 100%);
+            text-align: center;
+            padding: 28px 20px 24px;
+            border-radius: 20px;
             border: 1px solid var(--hairline);
-            padding: 2rem 1.25rem 1.5rem;
+            background: var(--elevated);
+            margin-bottom: 20px;
         }
-        .pf-hero-glow {
-            position: absolute; left: 0; right: 0; top: 0; height: 120px;
-            background: radial-gradient(ellipse 70% 80% at 50% 0%, rgba(28,155,239,.25), transparent 70%);
-            pointer-events: none; border-radius: 24px 24px 0 0;
-        }
-        .pf-ring {
-            width: 108px; height: 108px; border-radius: 50%;
-            padding: 3px;
-            background: linear-gradient(145deg, #1c9bef, #7c3aed 55%, #1c9bef);
+        .pf-avatar-wrap {
             position: relative;
+            width: 96px;
+            height: 96px;
+            margin: 0 auto 14px;
         }
         #avatarPreview {
-            width: 100%; height: 100%; border-radius: 50%; overflow: hidden;
-            display: flex; align-items: center; justify-content: center;
-            background: var(--elevated2); color: var(--ink);
-            font-size: 2rem; font-weight: 600;
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--ink);
+            background: var(--elevated2);
             border: 3px solid var(--canvas);
+            box-shadow: 0 0 0 2px rgba(28, 155, 239, 0.45);
         }
-        #avatarPreview img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .pf-cam {
-            position: absolute; right: -2px; bottom: -2px;
-            width: 34px; height: 34px; border-radius: 50%;
-            background: #1c9bef; color: #fff; border: 3px solid var(--canvas);
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.4);
-            transition: transform .12s ease;
+        #avatarPreview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
         }
-        .pf-cam:hover { transform: scale(1.08); }
+        #presenceDotPreview {
+            position: absolute;
+            right: 2px;
+            bottom: 2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2.5px solid var(--elevated);
+            background: var(--online);
+        }
+        #changeAvatarBtn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 600;
+            background: var(--elevated2);
+            color: var(--ink);
+            border: 1px solid var(--hairline);
+            cursor: pointer;
+            transition: background .15s;
+        }
+        #changeAvatarBtn:hover { background: var(--hairline); }
+        #usernamePreview {
+            margin-top: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--muted);
+        }
         .pf-card {
             border-radius: 18px;
             border: 1px solid var(--hairline);
-            background: var(--surface, var(--elevated));
-            padding: 1.1rem 1.15rem;
+            background: var(--elevated);
+            padding: 18px 16px;
+            margin-bottom: 16px;
         }
         .pf-label {
-            font-size: 11px; font-weight: 700; letter-spacing: .07em;
-            text-transform: uppercase; color: var(--faint); margin-bottom: 8px; display: block;
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            margin-bottom: 8px;
         }
         .pf-input {
-            width: 100%; padding: 12px 14px; font-size: 14px; font-weight: 500;
-            border-radius: 12px; border: 1px solid var(--hairline);
-            background: var(--elevated); color: var(--ink);
-            transition: border-color .15s, box-shadow .15s;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px 14px;
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.4;
+            border-radius: 12px;
+            border: 1px solid var(--hairline);
+            background: var(--canvas);
+            color: var(--ink);
         }
         .pf-input:focus {
             outline: none;
-            border-color: rgba(28,155,239,.7);
-            box-shadow: 0 0 0 3px rgba(28,155,239,.14);
+            border-color: #1c9bef;
+            box-shadow: 0 0 0 3px rgba(28, 155, 239, 0.18);
         }
-        .pf-input::placeholder { color: var(--faint); }
-        .pf-pres { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        .pf-hint {
+            margin-top: 8px;
+            font-size: 12px;
+            line-height: 1.4;
+            color: var(--faint);
+        }
+        .pf-field { margin-bottom: 16px; }
+        .pf-field:last-child { margin-bottom: 0; }
+        .pf-pres {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
         .seg-btn {
-            border-radius: 12px; padding: 11px 6px; font-size: 12px; font-weight: 600;
-            border: 1px solid var(--hairline); background: var(--elevated); color: var(--muted);
-            display: flex; align-items: center; justify-content: center; gap: 6px;
-            transition: .15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 12px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid var(--hairline);
+            background: var(--canvas);
+            color: var(--muted);
+            cursor: pointer;
         }
         .seg-btn[aria-pressed="true"] {
-            background: rgba(28,155,239,.14);
-            border-color: rgba(28,155,239,.5);
+            background: rgba(28, 155, 239, 0.15);
+            border-color: rgba(28, 155, 239, 0.55);
             color: var(--ink);
         }
-        .pf-theme {
-            display: flex; align-items: center; justify-content: space-between; gap: 12px;
-            padding: 12px; border-radius: 14px;
-            background: var(--elevated); border: 1px solid var(--hairline);
+        .pf-theme-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 14px;
+            background: var(--canvas);
+            border: 1px solid var(--hairline);
         }
-        .switch-track { background: var(--elevated2); border: 1px solid var(--hairline); }
-        .switch-track[data-on="true"] { background: #1c9bef; border-color: transparent; }
-        .switch-thumb { background: #fff; transition: transform .15s ease; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
-        .switch-track[data-on="true"] .switch-thumb { transform: translateX(1.25rem); }
-        .pf-save {
-            width: 100%; border: none; border-radius: 999px; padding: 14px;
-            font-size: 14px; font-weight: 700; color: #fff; background: #1c9bef;
-            box-shadow: 0 10px 28px rgba(28,155,239,.3);
-            transition: opacity .15s, transform .1s;
+        .switch-track {
+            position: relative;
+            width: 48px;
+            height: 28px;
+            border-radius: 999px;
+            background: var(--elevated2);
+            border: 1px solid var(--hairline);
+            flex-shrink: 0;
+            cursor: pointer;
         }
-        .pf-save:hover { opacity: .92; }
-        .pf-save:active { transform: scale(.98); }
-        @media (min-width: 640px) {
-            #bottomNav { border-top: none !important; border-right: 1px solid var(--hairline); }
+        .switch-track[data-on="true"] {
+            background: #1c9bef;
+            border-color: transparent;
+        }
+        .switch-thumb {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fff;
+            transition: transform .15s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,.25);
+        }
+        .switch-track[data-on="true"] .switch-thumb {
+            transform: translateX(20px);
+        }
+        #saveBtn {
+            width: 100%;
+            margin-top: 8px;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+            background: #1c9bef;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(28, 155, 239, 0.28);
+        }
+        #saveBtn:hover { opacity: 0.92; }
+        #avatarPopover {
+            z-index: 40;
         }
     </style>
 </head>
 <body class="h-full font-body overflow-hidden">
-<div class="flex flex-col sm:flex-row h-screen w-full overflow-hidden pb-[60px] sm:pb-0" style="background-color: var(--canvas);">
+<div class="flex flex-col sm:flex-row h-screen w-full overflow-hidden pb-[60px] sm:pb-0" style="background-color: var(--canvas); color: var(--ink);">
 
-    <!-- Navbar = index.html bottomNav -->
+    <!-- Navbar (index) -->
     <nav id="bottomNav"
          class="fixed sm:static bottom-0 left-0 z-50 flex sm:h-full w-full sm:w-[72px] h-[60px] shrink-0 flex-row sm:flex-col items-center justify-around sm:justify-between sm:py-5 px-4 sm:px-0"
          style="border-top: 1px solid var(--hairline); background-color: var(--canvas);"
@@ -147,29 +256,29 @@
     </nav>
 
     <div class="flex-1 overflow-y-auto scrollbar-thin min-w-0">
-        <main class="mx-auto w-full max-w-md px-4 py-6 sm:px-6 sm:py-9">
-            <header class="mb-5">
-                <h1 class="font-display text-2xl font-extrabold tracking-tight" style="color: var(--ink);">Profile</h1>
+        <div class="pf-page">
+            <header class="mb-6">
+                <h1 class="font-display text-2xl font-extrabold tracking-tight" style="color: var(--ink);">Edit Profile</h1>
                 <p class="mt-1 text-sm" style="color: var(--muted);">How you appear to others on ZChat</p>
             </header>
 
-            <form id="profileForm" class="flex flex-col gap-3.5" autocomplete="off">
+            <form id="profileForm" autocomplete="off">
+                <!-- Avatar block -->
+                <div class="pf-hero">
+                    <div class="pf-avatar-wrap">
+                        <div id="avatarPreview" class="select-none"></div>
+                        <span id="presenceDotPreview"></span>
+                    </div>
+                    <button type="button" id="changeAvatarBtn">
+                        <i data-lucide="camera" class="w-4 h-4"></i>
+                        <span id="changeAvatarBtnLabel">Change avatar</span>
+                    </button>
+                    <p id="usernamePreview"></p>
 
-                <!-- Avatar hero -->
-                <section class="pf-hero flex flex-col items-center">
-                    <div class="pf-hero-glow"></div>
-                    <div class="relative z-[1]">
-                        <div class="pf-ring">
-                            <div id="avatarPreview" class="select-none"></div>
-                        </div>
-                        <span id="presenceDotPreview" class="absolute z-[2] h-[18px] w-[18px] rounded-full"
-                              style="right: 4px; bottom: 4px; border: 2.5px solid var(--canvas); background-color: var(--online);"></span>
-                        <button type="button" id="changeAvatarBtn" class="pf-cam z-[3]" aria-label="Change avatar">
-                            <i data-lucide="camera" class="w-3.5 h-3.5"></i>
-                        </button>
-                        <div id="avatarPopover" class="hidden absolute left-1/2 top-[calc(100%+12px)] z-30 w-72 -translate-x-1/2 rounded-2xl p-3 shadow-2xl"
-                             style="background-color: var(--elevated); border: 1px solid var(--hairline);">
-                            <div class="mb-3 flex gap-1 rounded-pill p-1" style="background-color: var(--elevated2);">
+                    <div class="relative inline-block">
+                        <div id="avatarPopover" class="hidden absolute left-1/2 top-2 z-30 w-72 -translate-x-1/2 rounded-2xl p-3 shadow-2xl"
+                             style="background-color: var(--elevated2); border: 1px solid var(--hairline);">
+                            <div class="mb-3 flex gap-1 rounded-pill p-1" style="background-color: var(--elevated);">
                                 <button type="button" data-avatar-tab="color" class="avatar-tab flex-1 rounded-pill py-1.5 text-xs font-semibold">Color</button>
                                 <button type="button" data-avatar-tab="emoji" class="avatar-tab flex-1 rounded-pill py-1.5 text-xs font-semibold">Emoji</button>
                                 <button type="button" data-avatar-tab="photo" class="avatar-tab flex-1 rounded-pill py-1.5 text-xs font-semibold">Photo</button>
@@ -178,7 +287,7 @@
                             <div id="emojiSwatches" class="hidden grid grid-cols-6 gap-1"></div>
                             <div id="photoPanel" class="hidden flex-col items-center gap-3 py-2">
                                 <input type="file" id="avatarFileInput" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden" />
-                                <button type="button" id="uploadPhotoBtn" class="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-semibold" style="background-color: var(--elevated2); color: var(--ink);">
+                                <button type="button" id="uploadPhotoBtn" class="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-semibold" style="background-color: var(--elevated); color: var(--ink);">
                                     <i data-lucide="upload" class="w-4 h-4"></i>
                                     <span id="uploadPhotoBtnLabel">Upload photo</span>
                                 </button>
@@ -187,20 +296,19 @@
                             </div>
                         </div>
                     </div>
-                    <p id="usernamePreview" class="relative z-[1] mt-3 text-sm font-semibold tracking-tight" style="color: var(--ink);"></p>
-                </section>
+                </div>
 
-                <!-- Name & status -->
-                <section class="pf-card space-y-4">
-                    <div>
+                <!-- Username & status -->
+                <section class="pf-card">
+                    <div class="pf-field">
                         <label for="usernameField" class="pf-label">Username</label>
-                        <input id="usernameField" type="text" maxlength="24" class="pf-input" placeholder="yourname" />
-                        <p id="usernameError" class="hidden mt-1.5 text-xs" style="color: var(--dnd);">Username can't be empty.</p>
+                        <input id="usernameField" type="text" maxlength="24" class="pf-input" />
+                        <p id="usernameError" class="hidden pf-hint" style="color: var(--dnd);">Username can't be empty.</p>
                     </div>
-                    <div>
+                    <div class="pf-field">
                         <label for="bioField" class="pf-label">Status</label>
-                        <input id="bioField" type="text" maxlength="60" class="pf-input" placeholder="Available, In a meeting…" />
-                        <p id="statusDesc" class="mt-1.5 text-[11px]" style="color: var(--faint);">Shown next to your name in chats</p>
+                        <input id="bioField" type="text" maxlength="60" class="pf-input" placeholder="e.g. Available, In a meeting..." />
+                        <p id="statusDesc" class="pf-hint">Shown to others alongside your name.</p>
                     </div>
                 </section>
 
@@ -218,7 +326,7 @@
                         </button>
                         <button type="button" data-presence="dnd" class="seg-btn presence-btn" aria-pressed="false">
                             <span class="h-2 w-2 rounded-full shrink-0" style="background-color: var(--dnd);"></span>
-                            <span class="presence-text">DND</span>
+                            <span class="presence-text">Do Not Disturb</span>
                         </button>
                     </div>
                 </section>
@@ -226,28 +334,25 @@
                 <!-- Theme -->
                 <section class="pf-card">
                     <span id="appearanceLabel" class="pf-label">Appearance</span>
-                    <div class="pf-theme">
+                    <div class="pf-theme-row">
                         <div class="flex items-center gap-3 min-w-0">
-                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style="background: var(--elevated2); color: var(--ink);">
+                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style="background: var(--elevated2);">
                                 <i id="themeIcon" data-lucide="moon" class="w-[18px] h-[18px]"></i>
                             </div>
-                            <div class="min-w-0">
+                            <div class="min-w-0 text-left">
                                 <p id="themeTitle" class="text-sm font-semibold" style="color: var(--ink);">Theme</p>
                                 <p id="themeLabel" class="text-xs" style="color: var(--faint);">Dark mode</p>
                             </div>
                         </div>
-                        <button type="button" id="themeSwitch" role="switch" aria-checked="false"
-                                class="switch-track relative h-7 w-12 shrink-0 rounded-pill transition-colors" data-on="false">
-                            <span class="switch-thumb absolute top-1 left-1 h-5 w-5 rounded-full"></span>
+                        <button type="button" id="themeSwitch" role="switch" aria-checked="false" class="switch-track" data-on="false">
+                            <span class="switch-thumb"></span>
                         </button>
                     </div>
                 </section>
 
-                <div class="pt-2 pb-10">
-                    <button id="saveBtn" type="submit" class="pf-save">Save changes</button>
-                </div>
+                <button id="saveBtn" type="submit">Save Changes</button>
             </form>
-        </main>
+        </div>
     </div>
 </div>
 
