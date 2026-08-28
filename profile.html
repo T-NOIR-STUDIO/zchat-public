@@ -11,35 +11,22 @@
     <link rel="icon" href="/assets/img/favicon-32.png" type="image/png" sizes="any" />
     <link rel="icon" href="/assets/img/favicon-16.png" type="image/png" sizes="any" />
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/img/apple-touch-icon.png" />
+    <link rel="stylesheet" href="css/tailwind.min.css">
     <link rel="stylesheet" href="css/style.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        display: ["Manrope", "sans-serif"],
-                        body: ["Inter", "sans-serif"],
-                    },
-                    borderRadius: {
-                        pill: "999px",
-                        bubble: "20px",
-                    },
-                    keyframes: {
-                        "fade-in": {
-                            "0%": { opacity: 0, transform: "translateY(4px)" },
-                            "100%": { opacity: 1, transform: "translateY(0)" },
-                        },
-                    },
-                    animation: {
-                        "fade-in": "fade-in .18s ease-out",
-                    },
-                },
-            },
-        };
-    </script>
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style id="profileExtra">
+  /* profile page helpers (no CDN) */
+  body { background-color: var(--canvas); color: var(--ink); }
+  .switch-track { background-color: var(--elevated2); }
+  .switch-track[data-on="true"] { background-color: #1c9bef; }
+  .switch-thumb { background-color: #fff; transition: transform .15s ease; }
+  .switch-track[data-on="true"] .switch-thumb { transform: translateX(1.25rem); }
+  .seg-btn[aria-pressed="true"] { background-color: var(--elevated2); color: var(--ink); }
+  .seg-btn { color: var(--muted); }
+  .avatar-tab { color: var(--muted); }
+  .avatar-tab.active, .avatar-tab[aria-selected="true"] { background-color: var(--elevated); color: var(--ink); }
+</style>
 </head>
 
 <body class="h-full font-body">
