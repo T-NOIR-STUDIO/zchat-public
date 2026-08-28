@@ -27,12 +27,76 @@
     <link rel="stylesheet" href="css/verified-badge.css">
     <link rel="stylesheet" href="css/video-call.css">
 
-    <link rel="stylesheet" href="css/tailwind.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        canvas: "var(--canvas)",
+                        surface: "var(--surface)",
+                        elevated: "var(--elevated)",
+                        elevated2: "var(--elevated2)",
+                        hairline: "var(--hairline)",
+                        ink: "var(--ink)",
+                        muted: "var(--muted)",
+                        faint: "var(--faint)",
+                        online: "var(--online)",
+                    },
+                    fontFamily: {
+                        display: ["Manrope", "sans-serif"],
+                        body: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        pill: "999px",
+                        bubble: "20px",
+                    },
+                    keyframes: {
+                        "fade-in": {
+                            "0%": {opacity: 0, transform: "translateY(4px)"},
+                            "100%": {opacity: 1, transform: "translateY(0)"},
+                        },
+                        "typing-dot": {
+                            "0%, 60%, 100%": {transform: "translateY(0)", opacity: 0.4},
+                            "30%": {transform: "translateY(-3px)", opacity: 1},
+                        },
+                    },
+                    animation: {
+                        "fade-in": "fade-in .18s ease-out",
+                        "typing-dot": "typing-dot 1.2s ease-in-out infinite",
+                    },
+                },
+            },
+        };
+    </script>
 
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+<style id="appLoadingStyle">
+#appLoading{
+  position:fixed;inset:0;z-index:99999;
+  display:flex;align-items:center;justify-content:center;
+  background:#000;
+  transition:opacity .25s ease;
+}
+#appLoading.is-done{opacity:0;pointer-events:none;}
+#appLoading .app-spinner{
+  width:40px;height:40px;
+  border:3px solid rgba(28,155,240,.25);
+  border-top-color:#1c9bf0;
+  border-radius:50%;
+  animation:appSpin .7s linear infinite;
+}
+@keyframes appSpin{to{transform:rotate(360deg)}}
+</style>
 </head>
 
 <body class="h-full font-body" style="background-color: var(--canvas); color: var(--ink);">
+
+<!-- App loading: spinner until chats loaded -->
+<div id="appLoading" aria-hidden="true"><div class="app-spinner"></div></div>
+
 
 <!-- Custom toast for screenshot block -->
 <div id="zchatToast" role="alert" aria-live="assertive"></div>
