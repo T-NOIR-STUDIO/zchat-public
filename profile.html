@@ -11,40 +11,68 @@
     <link rel="icon" href="/assets/img/favicon-32.png" type="image/png" sizes="any" />
     <link rel="icon" href="/assets/img/favicon-16.png" type="image/png" sizes="any" />
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/img/apple-touch-icon.png" />
+    <link rel="stylesheet" href="css/tailwind.min.css">
     <link rel="stylesheet" href="css/style.css">
-
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        display: ["Manrope", "sans-serif"],
-                        body: ["Inter", "sans-serif"],
-                    },
-                    borderRadius: {
-                        pill: "999px",
-                        bubble: "20px",
-                    },
-                    keyframes: {
-                        "fade-in": {
-                            "0%": { opacity: 0, transform: "translateY(4px)" },
-                            "100%": { opacity: 1, transform: "translateY(0)" },
-                        },
-                    },
-                    animation: {
-                        "fade-in": "fade-in .18s ease-out",
-                    },
-                },
-            },
-        };
-    </script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+      #themeSwitch.switch-track[data-on="true"],
+      #themeSwitch[data-on="true"] {
+        background-color: #1c9bf0 !important;
+      }
+      #themeSwitch[data-on="true"] .switch-thumb {
+        background-color: #fff !important;
+      }
+    </style>
 </head>
 
-<body class="h-full font-body">
+<body class="h-full font-body overflow-hidden" style="background-color: var(--canvas); color: var(--ink);">
 
-<div class="mx-auto flex h-full max-w-2xl flex-col">
+<div class="flex flex-col sm:flex-row h-screen w-full overflow-hidden pb-[60px] sm:pb-0" style="background-color: var(--canvas);">
+    <nav id="bottomNav"
+         class="fixed sm:static bottom-0 left-0 z-50 flex sm:h-full w-full sm:w-[72px] h-[60px] shrink-0 flex-row sm:flex-col items-center justify-around sm:justify-between sm:py-5 px-4 sm:px-0"
+         style="border-top: 1px solid var(--hairline); sm:border-top: none; sm:border-right: 1px solid var(--hairline); background-color: var(--canvas);" aria-label="Primary">
+        <div class="contents sm:flex sm:flex-col sm:items-center sm:w-full">
+            <div class="hidden sm:flex mb-6 h-9 w-9 items-center justify-center">
+                <a href="index.html" aria-label="Home">
+                    <svg width="26" height="26" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+                        <path d="M50 8C26.8 8 8 25.4 8 47c0 11.2 5 21.3 13.1 28.4L17 92l19.1-7.7A45.6 45.6 0 0 0 50 86c23.2 0 42-17.4 42-39S73.2 8 50 8Z"
+                              fill="currentColor" stroke="currentColor" stroke-width="7" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+            </div>
+            <ul class="flex flex-row sm:flex-col flex-1 sm:flex-initial items-center justify-around sm:justify-start w-full sm:w-auto gap-2">
+                <li>
+                    <a href="index.html" aria-label="Chats"
+                            class="nav-btn flex h-11 w-11 items-center justify-center rounded-2xl transition-colors"
+                            style="color: var(--muted);">
+                        <i data-lucide="message-circle" class="w-5 h-5"></i>
+                    </a>
+                </li>
+                <li>
+                    <a href="settings.html" aria-label="Settings"
+                       class="flex h-11 w-11 items-center justify-center rounded-2xl transition-colors hover:bg-elevated"
+                       style="color: var(--muted);">
+                        <i data-lucide="settings" class="w-5 h-5"></i>
+                    </a>
+                </li>
+                <li>
+                    <a href="report.html" aria-label="Report a bug"
+                       class="flex h-11 w-11 items-center justify-center rounded-2xl transition-colors hover:bg-elevated"
+                       style="color: var(--muted);">
+                        <i data-lucide="bug" class="w-5 h-5"></i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <a href="profile.html" id="profileBtn" aria-label="Profile"
+           class="hidden sm:flex rounded-full items-center justify-center shrink-0">
+            <div id="profileAvatar"
+                 class="flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold select-none"></div>
+        </a>
+    </nav>
+
+    <div class="flex-1 min-w-0 overflow-hidden">
+        <div class="mx-auto flex h-full max-w-2xl flex-col min-h-0">
 
     <!-- Header -->
     <header class="flex items-center gap-3 px-5 py-4 sm:px-6" style="border-bottom: 1px solid var(--hairline);">
@@ -61,7 +89,7 @@
 
     <!-- Content -->
     <div class="flex-1 overflow-y-auto scrollbar-thin px-5 py-8 sm:px-6">
-        <form id="profileForm" class="mx-auto flex w-full max-w-md flex-col gap-14" autocomplete="off">
+        <form id="profileForm" class="mx-auto flex w-full max-w-md flex-col gap-8" autocomplete="off">
 
             <!-- Avatar -->
             <section class="flex flex-col items-center gap-4">
@@ -126,22 +154,6 @@
                 <p id="statusDesc" class="text-xs" style="color: var(--faint);">Shown to others alongside your name.</p>
             </section>
 
-            <!-- Presence -->
-            <section class="flex flex-col gap-2">
-                <span id="presenceLabel" class="text-sm font-semibold">Presence</span>
-                <div class="grid grid-cols-3 gap-2 rounded-2xl p-1" style="background-color: var(--elevated);">
-                    <button type="button" data-presence="online" class="seg-btn presence-btn flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-semibold transition-colors" aria-pressed="false">
-                        <span class="h-2 w-2 rounded-full" style="background-color: var(--online);"></span> <span class="presence-text">Online</span>
-                    </button>
-                    <button type="button" data-presence="away" class="seg-btn presence-btn flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-semibold transition-colors" aria-pressed="false">
-                        <span class="h-2 w-2 rounded-full" style="background-color: var(--away);"></span> <span class="presence-text">Away</span>
-                    </button>
-                    <button type="button" data-presence="dnd" class="seg-btn presence-btn flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-semibold transition-colors" aria-pressed="false">
-                        <span class="h-2 w-2 rounded-full" style="background-color: var(--dnd);"></span> <span class="presence-text">Do Not Disturb</span>
-                    </button>
-                </div>
-            </section>
-
             <!-- Appearance -->
             <section class="flex flex-col gap-3">
                 <span id="appearanceLabel" class="text-sm font-semibold">Appearance</span>
@@ -169,9 +181,11 @@
         </form>
     </div>
 </div>
+    </div>
+</div>
 
 <!-- Custom Toast Notification -->
-<div id="toast" class="fixed bottom-6 right-6 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl transition-all duration-300 opacity-0 translate-y-4 pointer-events-none z-50 border" style="background-color: var(--elevated); border-color: var(--hairline); color: var(--ink);">
+<div id="toast" class="fixed bottom-20 sm:bottom-6 right-6 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl transition-all duration-300 opacity-0 translate-y-4 pointer-events-none z-50 border" style="background-color: var(--elevated); border-color: var(--hairline); color: var(--ink);">
     <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-500">
         <i data-lucide="check" class="w-4 h-4"></i>
     </div>
@@ -180,5 +194,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/auth.js"></script>
 <script src="js/profile.js"></script>
+<script>document.addEventListener("DOMContentLoaded",()=>{if(window.lucide)lucide.createIcons();});</script>
 </body>
 </html>
