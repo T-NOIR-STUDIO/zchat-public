@@ -43,19 +43,3 @@
 #composerShell.is-multiline #messageInput {
     /* Height set from JS */
 }
-
-
-/* Giữ bo góc pill khi focus — không để :focus-visible đổi radius */
-#composerShell:focus,
-#composerShell:focus-within,
-#composerShell:focus-visible,
-#messageInput:focus,
-#messageInput:focus-visible {
-    border-radius: 9999px !important;
-    outline: none !important;
-}
-#composerShell.is-multiline:focus,
-#composerShell.is-multiline:focus-within,
-#composerShell.is-multiline:focus-visible {
-    border-radius: 9999px !important;
-}
