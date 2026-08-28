@@ -1,6 +1,7 @@
 (function () {
     "use strict";
-    
+
+    /* ============ I18N DICTIONARY (EN, VI, ZH, RU) ============ */
     const i18n = {
         en: {
             backToChat: "Back to Chat",
@@ -114,7 +115,12 @@
         const headerTitle = document.querySelector("header h1");
         if (headerTitle) headerTitle.textContent = dict.editProfile;
 
-        if (changeAvatarBtn) changeAvatarBtn.childNodes[2].textContent = " " + dict.changeAvatar;
+        const changeAvatarBtnLabel = document.getElementById("changeAvatarBtnLabel");
+        if (changeAvatarBtnLabel) changeAvatarBtnLabel.textContent = dict.changeAvatar;
+        else if (changeAvatarBtn) {
+            const sp = changeAvatarBtn.querySelector("span");
+            if (sp) sp.textContent = dict.changeAvatar;
+        }
 
         const tabColor = document.querySelector('.avatar-tab[data-avatar-tab="color"]');
         if (tabColor) tabColor.textContent = dict.colorTab;
@@ -326,6 +332,18 @@
             avatarPreview.textContent = draft.avatarType === "emoji" ? draft.avatarEmoji : initials(draft.username || savedUsername);
         }
         presenceDotPreview.style.backgroundColor = PRESENCE_COLORS[draft.presence] || PRESENCE_COLORS.online;
+        // Navbar avatar (PC)
+        const navAv = document.getElementById("profileAvatar");
+        if (navAv) {
+            if (draft.avatarType === "photo" && draft.avatarUrl) {
+                navAv.style.backgroundColor = "var(--elevated2)";
+                navAv.innerHTML = `<img src="${draft.avatarUrl}" alt="" class="h-full w-full rounded-full object-cover" />`;
+            } else {
+                navAv.style.backgroundColor = draft.avatarType === "emoji" ? "var(--elevated2)" : (draft.avatarColor || "var(--elevated2)");
+                navAv.style.color = "var(--ink)";
+                navAv.textContent = draft.avatarType === "emoji" ? draft.avatarEmoji : initials(draft.username || savedUsername);
+            }
+        }
     }
 
     function renderPresenceButtons() {
