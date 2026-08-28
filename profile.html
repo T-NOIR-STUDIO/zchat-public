@@ -24,6 +24,13 @@
         }
 
         #presenceDotPreview { display: none !important; }
+        #usernameField,
+        #usernameField:focus,
+        #usernameField:focus-visible {
+            border-radius: 1rem !important;
+            outline: none !important;
+            box-shadow: none !important;
+        }
         #avatarPopover { min-width: 22rem; }
         #avatarPopover .color-swatch { width: 2.5rem !important; height: 2.5rem !important; }
         #avatarPopover .emoji-swatch { font-size: 1.35rem !important; padding: 0.45rem !important; }
@@ -143,7 +150,7 @@
                         <label for="usernameField" class="text-sm font-semibold">Username</label>
                         <input id="usernameField" type="text" maxlength="24"
                                class="w-full rounded-2xl px-4 py-3 text-sm focus:outline-none"
-                               style="background-color: var(--elevated); color: var(--ink);" />
+                               style="background-color: var(--elevated); color: var(--ink); border-radius: 1rem;" />
                         <p id="usernamePreview" class="text-xs" style="color: var(--faint);"></p>
                         <p id="usernameError" class="hidden text-xs" style="color: var(--dnd);">Username can't be empty.</p>
                     </section>
