@@ -15,14 +15,16 @@
     <link rel="stylesheet" href="css/style.css">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <style>
-      #themeSwitch.switch-track[data-on="true"],
-      #themeSwitch[data-on="true"] {
-        background-color: #1c9bf0 !important;
-      }
-      #themeSwitch[data-on="true"] .switch-thumb {
-        background-color: #fff !important;
-      }
-    </style>
+        #themeSwitch.switch-track[data-on="true"],
+        #themeSwitch[data-on="true"] {
+            background-color: #1c9bf0 !important;
+        }
+        #themeSwitch[data-on="true"] .switch-thumb {
+            background-color: #fff !important;
+        }
+    
+        #presenceDotPreview { display: none !important; }
+</style>
 </head>
 
 <body class="h-full font-body overflow-hidden" style="background-color: var(--canvas); color: var(--ink);">
@@ -43,8 +45,8 @@
             <ul class="flex flex-row sm:flex-col flex-1 sm:flex-initial items-center justify-around sm:justify-start w-full sm:w-auto gap-2">
                 <li>
                     <a href="index.html" aria-label="Chats"
-                            class="nav-btn flex h-11 w-11 items-center justify-center rounded-2xl transition-colors"
-                            style="color: var(--muted);">
+                       class="nav-btn flex h-11 w-11 items-center justify-center rounded-2xl transition-colors"
+                       style="color: var(--muted);">
                         <i data-lucide="message-circle" class="w-5 h-5"></i>
                     </a>
                 </li>
@@ -71,116 +73,113 @@
         </a>
     </nav>
 
-    <div class="flex-1 min-w-0 overflow-hidden">
-        <div class="mx-auto flex h-full max-w-2xl flex-col min-h-0">
+    <div class="flex-1 min-w-0 overflow-y-auto scrollbar-thin">
+        <div class="mx-auto flex w-full max-w-2xl flex-col">
 
-    <!-- Header -->
-    <header class="flex items-center gap-3 px-5 py-4 sm:px-6" style="border-bottom: 1px solid var(--hairline);">
-        <a href="index.html"
-           class="flex items-center gap-2 rounded-pill px-4 py-2 text-sm font-semibold transition-colors"
-           style="background-color: var(--elevated); color: var(--ink);"
-           onmouseover="this.style.backgroundColor='var(--elevated2)'"
-           onmouseout="this.style.backgroundColor='var(--elevated)'">
-            <i data-lucide="arrow-left" class="w-4 h-4"></i>
-            Back to Chat
-        </a>
-        <h1 class="font-display text-lg font-extrabold tracking-tight ml-1">Edit Profile</h1>
-    </header>
+            <!-- Header -->
+            <header class="flex items-center gap-3 px-5 py-4 sm:px-6" style="border-bottom: 1px solid var(--hairline);">
+                <a href="index.html"
+                   class="flex items-center gap-2 rounded-pill px-4 py-2 text-sm font-semibold transition-colors"
+                   style="background-color: var(--elevated); color: var(--ink);"
+                   onmouseover="this.style.backgroundColor='var(--elevated2)'"
+                   onmouseout="this.style.backgroundColor='var(--elevated)'">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    Back to Chat
+                </a>
+                <h1 class="font-display text-lg font-extrabold tracking-tight ml-1">Edit Profile</h1>
+            </header>
 
-    <!-- Content -->
-    <div class="flex-1 overflow-y-auto scrollbar-thin px-5 py-8 sm:px-6">
-        <form id="profileForm" class="mx-auto flex w-full max-w-md flex-col gap-8" autocomplete="off">
+            <!-- Content -->
+            <div class="px-5 py-8 sm:px-6">
+                <form id="profileForm" class="mx-auto flex w-full max-w-md flex-col gap-16" autocomplete="off">
 
-            <!-- Avatar -->
-            <section class="flex flex-col items-center gap-4">
-                <div class="relative">
-                    <div id="avatarPreview"
-                         class="flex h-24 w-24 items-center justify-center rounded-full text-3xl font-semibold select-none"
-                         style="color: var(--ink);"></div>
-                    <span id="presenceDotPreview"
-                          class="absolute bottom-1 right-1 h-5 w-5 rounded-full"
-                          style="border: 3px solid var(--canvas);"></span>
-                </div>
-
-                <div class="relative">
-                    <button type="button" id="changeAvatarBtn"
-                            class="flex items-center gap-2 rounded-pill px-4 py-2 text-sm font-semibold transition-colors"
-                            style="background-color: var(--elevated); color: var(--ink);">
-                        <i data-lucide="image" class="w-4 h-4"></i>
-                        Change avatar
-                    </button>
-
-                    <!-- Avatar picker popover -->
-                    <div id="avatarPopover" class="hidden absolute left-1/2 top-full z-20 mt-2 w-72 -translate-x-1/2 rounded-2xl p-3 shadow-2xl"
-                         style="background-color: var(--elevated); border: 1px solid var(--hairline);">
-                        <div class="mb-3 flex gap-1 rounded-pill p-1" style="background-color: var(--elevated2);">
-                            <button type="button" data-avatar-tab="color" class="avatar-tab flex-1 rounded-pill py-1.5 text-xs font-semibold transition-colors">Color</button>
-                            <button type="button" data-avatar-tab="emoji" class="avatar-tab flex-1 rounded-pill py-1.5 text-xs font-semibold transition-colors">Emoji</button>
-                            <button type="button" data-avatar-tab="photo" class="avatar-tab flex-1 rounded-pill py-1.5 text-xs font-semibold transition-colors">Photo</button>
+                    <!-- Avatar -->
+                    <section class="flex flex-col items-center gap-4">
+                        <div class="relative">
+                            <div id="avatarPreview"
+                                 class="flex h-24 w-24 items-center justify-center rounded-full text-3xl font-semibold select-none"
+                                 style="color: var(--ink);"></div>
                         </div>
-                        <div id="colorSwatches" class="grid grid-cols-6 gap-2"></div>
-                        <div id="emojiSwatches" class="hidden grid grid-cols-6 gap-1"></div>
-                        <div id="photoPanel" class="hidden flex-col items-center gap-3 py-2">
-                            <input type="file" id="avatarFileInput" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden" />
-                            <button type="button" id="uploadPhotoBtn"
-                                    class="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-semibold transition-colors"
-                                    style="background-color: var(--elevated2); color: var(--ink);">
-                                <i data-lucide="upload" class="w-4 h-4"></i>
-                                <span id="uploadPhotoBtnLabel">Upload photo</span>
+
+                        <div class="relative">
+                            <button type="button" id="changeAvatarBtn"
+                                    class="flex items-center gap-2 rounded-pill px-4 py-2 text-sm font-semibold transition-colors"
+                                    style="background-color: var(--elevated); color: var(--ink);">
+                                <i data-lucide="image" class="w-4 h-4"></i>
+                                Change avatar
                             </button>
-                            <p id="photoUploadError" class="hidden text-center text-xs" style="color: var(--dnd);"></p>
-                            <p class="text-center text-[11px]" style="color: var(--faint);">PNG, JPG, WEBP or GIF · Max 5MB</p>
+
+                            <!-- Avatar picker popover -->
+                            <div id="avatarPopover" class="hidden absolute left-1/2 top-full z-20 mt-2 w-72 -translate-x-1/2 rounded-2xl p-3 shadow-2xl"
+                                 style="background-color: var(--elevated); border: 1px solid var(--hairline);">
+                                <div class="mb-3 flex gap-1 rounded-pill p-1" style="background-color: var(--elevated2);">
+                                    <button type="button" data-avatar-tab="color" class="avatar-tab flex-1 rounded-pill py-1.5 text-xs font-semibold transition-colors">Color</button>
+                                    <button type="button" data-avatar-tab="emoji" class="avatar-tab flex-1 rounded-pill py-1.5 text-xs font-semibold transition-colors">Emoji</button>
+                                    <button type="button" data-avatar-tab="photo" class="avatar-tab flex-1 rounded-pill py-1.5 text-xs font-semibold transition-colors">Photo</button>
+                                </div>
+                                <div id="colorSwatches" class="grid grid-cols-6 gap-2"></div>
+                                <div id="emojiSwatches" class="hidden grid grid-cols-6 gap-1"></div>
+                                <div id="photoPanel" class="hidden flex-col items-center gap-3 py-2">
+                                    <input type="file" id="avatarFileInput" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden" />
+                                    <button type="button" id="uploadPhotoBtn"
+                                            class="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-semibold transition-colors"
+                                            style="background-color: var(--elevated2); color: var(--ink);">
+                                        <i data-lucide="upload" class="w-4 h-4"></i>
+                                        <span id="uploadPhotoBtnLabel">Upload photo</span>
+                                    </button>
+                                    <p id="photoUploadError" class="hidden text-center text-xs" style="color: var(--dnd);"></p>
+                                    <p class="text-center text-[11px]" style="color: var(--faint);">PNG, JPG, WEBP or GIF · Max 5MB</p>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            </section>
+                    </section>
 
-            <!-- Username -->
-            <section class="flex flex-col gap-2">
-                <label for="usernameField" class="text-sm font-semibold">Username</label>
-                <input id="usernameField" type="text" maxlength="24"
-                       class="w-full rounded-2xl px-4 py-3 text-sm focus:outline-none"
-                       style="background-color: var(--elevated); color: var(--ink);" />
-                <p id="usernamePreview" class="text-xs" style="color: var(--faint);"></p>
-                <p id="usernameError" class="hidden text-xs" style="color: var(--dnd);">Username can't be empty.</p>
-            </section>
+                    <!-- Username -->
+                    <section class="flex flex-col gap-2">
+                        <label for="usernameField" class="text-sm font-semibold">Username</label>
+                        <input id="usernameField" type="text" maxlength="24"
+                               class="w-full rounded-2xl px-4 py-3 text-sm focus:outline-none"
+                               style="background-color: var(--elevated); color: var(--ink);" />
+                        <p id="usernamePreview" class="text-xs" style="color: var(--faint);"></p>
+                        <p id="usernameError" class="hidden text-xs" style="color: var(--dnd);">Username can't be empty.</p>
+                    </section>
 
-            <!-- Bio / Status -->
-            <section class="flex flex-col gap-2">
-                <label for="bioField" class="text-sm font-semibold">Status</label>
-                <input id="bioField" type="text" maxlength="60" placeholder="e.g. Available, In a meeting..."
-                       class="w-full rounded-2xl px-4 py-3 text-sm focus:outline-none"
-                       style="background-color: var(--elevated); color: var(--ink);" />
-                <p id="statusDesc" class="text-xs" style="color: var(--faint);">Shown to others alongside your name.</p>
-            </section>
+                    <!-- Bio / Status -->
+                    <section class="flex flex-col gap-2">
+                        <label for="bioField" class="text-sm font-semibold">Status</label>
+                        <input id="bioField" type="text" maxlength="60" placeholder="e.g. Available, In a meeting..."
+                               class="w-full rounded-2xl px-4 py-3 text-sm focus:outline-none"
+                               style="background-color: var(--elevated); color: var(--ink);" />
+                        <p id="statusDesc" class="text-xs" style="color: var(--faint);">Shown to others alongside your name.</p>
+                    </section>
 
-            <!-- Appearance -->
-            <section class="flex flex-col gap-3">
-                <span id="appearanceLabel" class="text-sm font-semibold">Appearance</span>
-                <div class="flex items-center justify-between rounded-2xl px-4 py-3" style="background-color: var(--elevated);">
-                    <div class="flex items-center gap-3">
-                        <i id="themeIcon" data-lucide="moon" class="w-[18px] h-[18px]"></i>
-                        <div>
-                            <p id="themeTitle" class="text-sm font-medium">Theme</p>
-                            <p id="themeLabel" class="text-xs" style="color: var(--faint);">Dark mode</p>
+                    <!-- Appearance -->
+                    <section class="flex flex-col gap-3">
+                        <span id="appearanceLabel" class="text-sm font-semibold">Appearance</span>
+                        <div class="flex items-center justify-between rounded-2xl px-4 py-3" style="background-color: var(--elevated);">
+                            <div class="flex items-center gap-3">
+                                <i id="themeIcon" data-lucide="moon" class="w-[18px] h-[18px]"></i>
+                                <div>
+                                    <p id="themeTitle" class="text-sm font-medium">Theme</p>
+                                    <p id="themeLabel" class="text-xs" style="color: var(--faint);">Dark mode</p>
+                                </div>
+                            </div>
+                            <button type="button" id="themeSwitch" role="switch" aria-checked="false"
+                                    class="switch-track relative h-7 w-12 shrink-0 rounded-pill transition-colors" data-on="false">
+                                <span class="switch-thumb absolute top-1 left-1 h-5 w-5 rounded-full"></span>
+                            </button>
                         </div>
-                    </div>
-                    <button type="button" id="themeSwitch" role="switch" aria-checked="false"
-                            class="switch-track relative h-7 w-12 shrink-0 rounded-pill transition-colors" data-on="false">
-                        <span class="switch-thumb absolute top-1 left-1 h-5 w-5 rounded-full"></span>
-                    </button>
-                </div>
-            </section>
+                    </section>
 
-            <!-- Save Action Button -->
-            <div class="flex items-center justify-end pt-2">
-                <button id="saveBtn" type="submit" class="rounded-pill px-8 py-3 text-xs font-bold tracking-wide transition-all shadow-md hover:opacity-90 active:scale-95" style="background-color: var(--ink); color: var(--canvas);">
-                    Save Changes
-                </button>
+                    <!-- Save Action Button -->
+                    <div class="flex items-center justify-end pt-2 pb-8">
+                        <button id="saveBtn" type="submit" class="rounded-pill px-8 py-3 text-xs font-bold tracking-wide transition-all shadow-md hover:opacity-90 active:scale-95" style="background-color: var(--ink); color: var(--canvas);">
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
             </div>
-        </form>
-    </div>
-</div>
+        </div>
     </div>
 </div>
 
@@ -194,6 +193,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/auth.js"></script>
 <script src="js/profile.js"></script>
-<script>document.addEventListener("DOMContentLoaded",()=>{if(window.lucide)lucide.createIcons();});</script>
+<script>document.addEventListener("DOMContentLoaded",function(){if(window.lucide)lucide.createIcons();});</script>
 </body>
 </html>
