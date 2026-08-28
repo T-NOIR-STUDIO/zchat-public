@@ -4,369 +4,165 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Profile — ZChat</title>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
     <link rel="icon" href="/assets/img/favicon-32.png" type="image/png" sizes="any" />
     <link rel="icon" href="/assets/img/favicon-16.png" type="image/png" sizes="any" />
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/img/apple-touch-icon.png" />
-    <link rel="stylesheet" href="css/tailwind.min.css">
     <link rel="stylesheet" href="css/style.css">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ["Manrope", "sans-serif"],
+                        body: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        pill: "999px",
+                        bubble: "20px",
+                    },
+                    keyframes: {
+                        "fade-in": {
+                            "0%": { opacity: 0, transform: "translateY(4px)" },
+                            "100%": { opacity: 1, transform: "translateY(0)" },
+                        },
+                    },
+                    animation: {
+                        "fade-in": "fade-in .18s ease-out",
+                    },
+                },
+            },
+        };
+    </script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    <style>
-        #profileAvatar {
-            overflow: hidden;
-            background: var(--elevated2);
-            color: var(--ink);
-        }
-        #profileAvatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .pf-page { max-width: 420px; margin: 0 auto; padding: 24px 16px 48px; }
-        @media (min-width: 640px) {
-            .pf-page { padding: 36px 24px 56px; }
-            #bottomNav {
-                border-top: none !important;
-                border-right: 1px solid var(--hairline);
-            }
-        }
-        .pf-hero {
-            text-align: center;
-            padding: 28px 20px 24px;
-            border-radius: 20px;
-            border: 1px solid var(--hairline);
-            background: var(--elevated);
-            margin-bottom: 20px;
-        }
-        .pf-avatar-wrap {
-            position: relative;
-            width: 96px;
-            height: 96px;
-            margin: 0 auto 14px;
-        }
-        #avatarPreview {
-            width: 96px;
-            height: 96px;
-            border-radius: 50%;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            font-weight: 600;
-            color: var(--ink);
-            background: var(--elevated2);
-            border: 3px solid var(--canvas);
-            box-shadow: 0 0 0 2px rgba(28, 155, 239, 0.45);
-        }
-        #avatarPreview img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-        #presenceDotPreview {
-            position: absolute;
-            right: 2px;
-            bottom: 2px;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            border: 2.5px solid var(--elevated);
-            background: var(--online);
-        }
-        #changeAvatarBtn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin-top: 4px;
-            padding: 8px 16px;
-            border-radius: 999px;
-            font-size: 13px;
-            font-weight: 600;
-            background: var(--elevated2);
-            color: var(--ink);
-            border: 1px solid var(--hairline);
-            cursor: pointer;
-            transition: background .15s;
-        }
-        #changeAvatarBtn:hover { background: var(--hairline); }
-        #usernamePreview {
-            margin-top: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--muted);
-        }
-        .pf-card {
-            border-radius: 18px;
-            border: 1px solid var(--hairline);
-            background: var(--elevated);
-            padding: 18px 16px;
-            margin-bottom: 16px;
-        }
-        .pf-label {
-            display: block;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--muted);
-            margin-bottom: 8px;
-        }
-        .pf-input {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 12px 14px;
-            font-size: 14px;
-            font-weight: 500;
-            line-height: 1.4;
-            border-radius: 12px;
-            border: 1px solid var(--hairline);
-            background: var(--canvas);
-            color: var(--ink);
-        }
-        .pf-input:focus {
-            outline: none;
-            border-color: #1c9bef;
-            box-shadow: 0 0 0 3px rgba(28, 155, 239, 0.18);
-        }
-        .pf-hint {
-            margin-top: 8px;
-            font-size: 12px;
-            line-height: 1.4;
-            color: var(--faint);
-        }
-        .pf-field { margin-bottom: 16px; }
-        .pf-field:last-child { margin-bottom: 0; }
-        .pf-pres {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
-        }
-        .seg-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            padding: 12px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            border: 1px solid var(--hairline);
-            background: var(--canvas);
-            color: var(--muted);
-            cursor: pointer;
-        }
-        .seg-btn[aria-pressed="true"] {
-            background: rgba(28, 155, 239, 0.15);
-            border-color: rgba(28, 155, 239, 0.55);
-            color: var(--ink);
-        }
-        .pf-theme-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 12px;
-            border-radius: 14px;
-            background: var(--canvas);
-            border: 1px solid var(--hairline);
-        }
-        .switch-track {
-            position: relative;
-            width: 48px;
-            height: 28px;
-            border-radius: 999px;
-            background: var(--elevated2);
-            border: 1px solid var(--hairline);
-            flex-shrink: 0;
-            cursor: pointer;
-        }
-        .switch-track[data-on="true"] {
-            background: #1c9bef;
-            border-color: transparent;
-        }
-        .switch-thumb {
-            position: absolute;
-            top: 3px;
-            left: 3px;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #fff;
-            transition: transform .15s ease;
-            box-shadow: 0 1px 3px rgba(0,0,0,.25);
-        }
-        .switch-track[data-on="true"] .switch-thumb {
-            transform: translateX(20px);
-        }
-        #saveBtn {
-            width: 100%;
-            margin-top: 8px;
-            padding: 14px 20px;
-            border: none;
-            border-radius: 999px;
-            font-size: 14px;
-            font-weight: 700;
-            color: #fff;
-            background: #1c9bef;
-            cursor: pointer;
-            box-shadow: 0 8px 24px rgba(28, 155, 239, 0.28);
-        }
-        #saveBtn:hover { opacity: 0.92; }
-        #avatarPopover {
-            z-index: 40;
-        }
-    </style>
 </head>
-<body class="h-full font-body overflow-hidden">
-<div class="flex flex-col sm:flex-row h-screen w-full overflow-hidden pb-[60px] sm:pb-0" style="background-color: var(--canvas); color: var(--ink);">
 
-    <!-- Navbar (index) -->
-    <nav id="bottomNav"
-         class="fixed sm:static bottom-0 left-0 z-50 flex sm:h-full w-full sm:w-[72px] h-[60px] shrink-0 flex-row sm:flex-col items-center justify-around sm:justify-between sm:py-5 px-4 sm:px-0"
-         style="border-top: 1px solid var(--hairline); background-color: var(--canvas);"
-         aria-label="Primary">
-        <div class="contents sm:flex sm:flex-col sm:items-center sm:w-full">
-            <div class="hidden sm:flex mb-6 h-9 w-9 items-center justify-center" style="color: var(--ink);">
-                <a href="index.html" aria-label="Home">
-                    <svg width="26" height="26" viewBox="0 0 100 100" fill="none" aria-hidden="true">
-                        <path d="M50 8C26.8 8 8 25.4 8 47c0 11.2 5 21.3 13.1 28.4L17 92l19.1-7.7A45.6 45.6 0 0 0 50 86c23.2 0 42-17.4 42-39S73.2 8 50 8Z"
-                              fill="currentColor" stroke="currentColor" stroke-width="7" stroke-linejoin="round"/>
-                    </svg>
-                </a>
-            </div>
-            <ul class="flex flex-row sm:flex-col flex-1 sm:flex-initial items-center justify-around sm:justify-start w-full sm:w-auto gap-2">
-                <li>
-                    <a href="index.html" aria-label="Chats" class="nav-btn flex h-11 w-11 items-center justify-center rounded-2xl transition-colors" style="color: var(--muted);">
-                        <i data-lucide="message-circle" class="w-5 h-5"></i>
-                    </a>
-                </li>
-                <li>
-                    <a href="settings.html" aria-label="Settings" class="flex h-11 w-11 items-center justify-center rounded-2xl transition-colors hover:bg-elevated" style="color: var(--muted);">
-                        <i data-lucide="settings" class="w-5 h-5"></i>
-                    </a>
-                </li>
-                <li>
-                    <a href="report.html" aria-label="Report a bug" class="flex h-11 w-11 items-center justify-center rounded-2xl transition-colors hover:bg-elevated" style="color: var(--muted);">
-                        <i data-lucide="bug" class="w-5 h-5"></i>
-                    </a>
-                </li>
-            </ul>
-        </div>
-        <a href="profile.html" id="profileBtn" aria-label="Profile" class="hidden sm:flex rounded-full items-center justify-center shrink-0" style="box-shadow: 0 0 0 2px #1c9bef;">
-            <div id="profileAvatar" class="flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold select-none"></div>
+<body class="h-full font-body">
+
+<div class="mx-auto flex h-full max-w-2xl flex-col">
+
+    <!-- Header -->
+    <header class="flex items-center gap-3 px-5 py-4 sm:px-6" style="border-bottom: 1px solid var(--hairline);">
+        <a href="index.html"
+           class="flex items-center gap-2 rounded-pill px-4 py-2 text-sm font-semibold transition-colors"
+           style="background-color: var(--elevated); color: var(--ink);"
+           onmouseover="this.style.backgroundColor='var(--elevated2)'"
+           onmouseout="this.style.backgroundColor='var(--elevated)'">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            Back to Chat
         </a>
-    </nav>
+        <h1 class="font-display text-lg font-extrabold tracking-tight ml-1">Edit Profile</h1>
+    </header>
 
-    <div class="flex-1 overflow-y-auto scrollbar-thin min-w-0">
-        <div class="pf-page">
-            <header class="mb-6">
-                <h1 class="font-display text-2xl font-extrabold tracking-tight" style="color: var(--ink);">Edit Profile</h1>
-                <p class="mt-1 text-sm" style="color: var(--muted);">How you appear to others on ZChat</p>
-            </header>
+    <!-- Content -->
+    <div class="flex-1 overflow-y-auto scrollbar-thin px-5 py-8 sm:px-6">
+        <form id="profileForm" class="mx-auto flex w-full max-w-md flex-col gap-8" autocomplete="off">
 
-            <form id="profileForm" autocomplete="off">
-                <!-- Avatar block -->
-                <div class="pf-hero">
-                    <div class="pf-avatar-wrap">
-                        <div id="avatarPreview" class="select-none"></div>
-                        <span id="presenceDotPreview"></span>
-                    </div>
-                    <button type="button" id="changeAvatarBtn">
-                        <i data-lucide="camera" class="w-4 h-4"></i>
-                        <span id="changeAvatarBtnLabel">Change avatar</span>
+            <!-- Avatar -->
+            <section class="flex flex-col items-center gap-4">
+                <div class="relative">
+                    <div id="avatarPreview"
+                         class="flex h-24 w-24 items-center justify-center rounded-full text-3xl font-semibold select-none"
+                         style="color: var(--ink);"></div>
+                    <span id="presenceDotPreview"
+                          class="absolute bottom-1 right-1 h-5 w-5 rounded-full"
+                          style="border: 3px solid var(--canvas);"></span>
+                </div>
+
+                <div class="relative">
+                    <button type="button" id="changeAvatarBtn"
+                            class="flex items-center gap-2 rounded-pill px-4 py-2 text-sm font-semibold transition-colors"
+                            style="background-color: var(--elevated); color: var(--ink);">
+                        <i data-lucide="image" class="w-4 h-4"></i>
+                        Change avatar
                     </button>
-                    <p id="usernamePreview"></p>
 
-                    <div class="relative inline-block">
-                        <div id="avatarPopover" class="hidden absolute left-1/2 top-2 z-30 w-72 -translate-x-1/2 rounded-2xl p-3 shadow-2xl"
-                             style="background-color: var(--elevated2); border: 1px solid var(--hairline);">
-                            <div class="mb-3 flex gap-1 rounded-pill p-1" style="background-color: var(--elevated);">
-                                <button type="button" data-avatar-tab="color" class="avatar-tab flex-1 rounded-pill py-1.5 text-xs font-semibold">Color</button>
-                                <button type="button" data-avatar-tab="emoji" class="avatar-tab flex-1 rounded-pill py-1.5 text-xs font-semibold">Emoji</button>
-                                <button type="button" data-avatar-tab="photo" class="avatar-tab flex-1 rounded-pill py-1.5 text-xs font-semibold">Photo</button>
-                            </div>
-                            <div id="colorSwatches" class="grid grid-cols-6 gap-2"></div>
-                            <div id="emojiSwatches" class="hidden grid grid-cols-6 gap-1"></div>
-                            <div id="photoPanel" class="hidden flex-col items-center gap-3 py-2">
-                                <input type="file" id="avatarFileInput" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden" />
-                                <button type="button" id="uploadPhotoBtn" class="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-semibold" style="background-color: var(--elevated); color: var(--ink);">
-                                    <i data-lucide="upload" class="w-4 h-4"></i>
-                                    <span id="uploadPhotoBtnLabel">Upload photo</span>
-                                </button>
-                                <p id="photoUploadError" class="hidden text-center text-xs" style="color: var(--dnd);"></p>
-                                <p class="text-center text-[11px]" style="color: var(--faint);">PNG, JPG, WEBP · Max 5MB</p>
-                            </div>
+                    <!-- Avatar picker popover -->
+                    <div id="avatarPopover" class="hidden absolute left-1/2 top-full z-20 mt-2 w-72 -translate-x-1/2 rounded-2xl p-3 shadow-2xl"
+                         style="background-color: var(--elevated); border: 1px solid var(--hairline);">
+                        <div class="mb-3 flex gap-1 rounded-pill p-1" style="background-color: var(--elevated2);">
+                            <button type="button" data-avatar-tab="color" class="avatar-tab flex-1 rounded-pill py-1.5 text-xs font-semibold transition-colors">Color</button>
+                            <button type="button" data-avatar-tab="emoji" class="avatar-tab flex-1 rounded-pill py-1.5 text-xs font-semibold transition-colors">Emoji</button>
+                            <button type="button" data-avatar-tab="photo" class="avatar-tab flex-1 rounded-pill py-1.5 text-xs font-semibold transition-colors">Photo</button>
+                        </div>
+                        <div id="colorSwatches" class="grid grid-cols-6 gap-2"></div>
+                        <div id="emojiSwatches" class="hidden grid grid-cols-6 gap-1"></div>
+                        <div id="photoPanel" class="hidden flex-col items-center gap-3 py-2">
+                            <input type="file" id="avatarFileInput" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden" />
+                            <button type="button" id="uploadPhotoBtn"
+                                    class="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-semibold transition-colors"
+                                    style="background-color: var(--elevated2); color: var(--ink);">
+                                <i data-lucide="upload" class="w-4 h-4"></i>
+                                <span id="uploadPhotoBtnLabel">Upload photo</span>
+                            </button>
+                            <p id="photoUploadError" class="hidden text-center text-xs" style="color: var(--dnd);"></p>
+                            <p class="text-center text-[11px]" style="color: var(--faint);">PNG, JPG, WEBP or GIF · Max 5MB</p>
                         </div>
                     </div>
                 </div>
+            </section>
 
-                <!-- Username & status -->
-                <section class="pf-card">
-                    <div class="pf-field">
-                        <label for="usernameField" class="pf-label">Username</label>
-                        <input id="usernameField" type="text" maxlength="24" class="pf-input" />
-                        <p id="usernameError" class="hidden pf-hint" style="color: var(--dnd);">Username can't be empty.</p>
-                    </div>
-                    <div class="pf-field">
-                        <label for="bioField" class="pf-label">Status</label>
-                        <input id="bioField" type="text" maxlength="60" class="pf-input" placeholder="e.g. Available, In a meeting..." />
-                        <p id="statusDesc" class="pf-hint">Shown to others alongside your name.</p>
-                    </div>
-                </section>
+            <!-- Username -->
+            <section class="flex flex-col gap-2">
+                <label for="usernameField" class="text-sm font-semibold">Username</label>
+                <input id="usernameField" type="text" maxlength="24"
+                       class="w-full rounded-2xl px-4 py-3 text-sm focus:outline-none"
+                       style="background-color: var(--elevated); color: var(--ink);" />
+                <p id="usernamePreview" class="text-xs" style="color: var(--faint);"></p>
+                <p id="usernameError" class="hidden text-xs" style="color: var(--dnd);">Username can't be empty.</p>
+            </section>
 
-                <!-- Presence -->
-                <section class="pf-card">
-                    <span id="presenceLabel" class="pf-label">Presence</span>
-                    <div class="pf-pres">
-                        <button type="button" data-presence="online" class="seg-btn presence-btn" aria-pressed="false">
-                            <span class="h-2 w-2 rounded-full shrink-0" style="background-color: var(--online);"></span>
-                            <span class="presence-text">Online</span>
-                        </button>
-                        <button type="button" data-presence="away" class="seg-btn presence-btn" aria-pressed="false">
-                            <span class="h-2 w-2 rounded-full shrink-0" style="background-color: var(--away);"></span>
-                            <span class="presence-text">Away</span>
-                        </button>
-                        <button type="button" data-presence="dnd" class="seg-btn presence-btn" aria-pressed="false">
-                            <span class="h-2 w-2 rounded-full shrink-0" style="background-color: var(--dnd);"></span>
-                            <span class="presence-text">Do Not Disturb</span>
-                        </button>
-                    </div>
-                </section>
+            <!-- Bio / Status -->
+            <section class="flex flex-col gap-2">
+                <label for="bioField" class="text-sm font-semibold">Status</label>
+                <input id="bioField" type="text" maxlength="60" placeholder="e.g. Available, In a meeting..."
+                       class="w-full rounded-2xl px-4 py-3 text-sm focus:outline-none"
+                       style="background-color: var(--elevated); color: var(--ink);" />
+                <p id="statusDesc" class="text-xs" style="color: var(--faint);">Shown to others alongside your name.</p>
+            </section>
 
-                <!-- Theme -->
-                <section class="pf-card">
-                    <span id="appearanceLabel" class="pf-label">Appearance</span>
-                    <div class="pf-theme-row">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style="background: var(--elevated2);">
-                                <i id="themeIcon" data-lucide="moon" class="w-[18px] h-[18px]"></i>
-                            </div>
-                            <div class="min-w-0 text-left">
-                                <p id="themeTitle" class="text-sm font-semibold" style="color: var(--ink);">Theme</p>
-                                <p id="themeLabel" class="text-xs" style="color: var(--faint);">Dark mode</p>
-                            </div>
+            <!-- Appearance -->
+            <section class="flex flex-col gap-3">
+                <span id="appearanceLabel" class="text-sm font-semibold">Appearance</span>
+                <div class="flex items-center justify-between rounded-2xl px-4 py-3" style="background-color: var(--elevated);">
+                    <div class="flex items-center gap-3">
+                        <i id="themeIcon" data-lucide="moon" class="w-[18px] h-[18px]"></i>
+                        <div>
+                            <p id="themeTitle" class="text-sm font-medium">Theme</p>
+                            <p id="themeLabel" class="text-xs" style="color: var(--faint);">Dark mode</p>
                         </div>
-                        <button type="button" id="themeSwitch" role="switch" aria-checked="false" class="switch-track" data-on="false">
-                            <span class="switch-thumb"></span>
-                        </button>
                     </div>
-                </section>
+                    <button type="button" id="themeSwitch" role="switch" aria-checked="false"
+                            class="switch-track relative h-7 w-12 shrink-0 rounded-pill transition-colors" data-on="false">
+                        <span class="switch-thumb absolute top-1 left-1 h-5 w-5 rounded-full"></span>
+                    </button>
+                </div>
+            </section>
 
-                <button id="saveBtn" type="submit">Save Changes</button>
-            </form>
-        </div>
+            <!-- Save Action Button -->
+            <div class="flex items-center justify-end pt-2">
+                <button id="saveBtn" type="submit" class="rounded-pill px-8 py-3 text-xs font-bold tracking-wide transition-all shadow-md hover:opacity-90 active:scale-95" style="background-color: var(--ink); color: var(--canvas);">
+                    Save Changes
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
-<div id="toast" class="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl transition-all duration-300 opacity-0 translate-y-4 pointer-events-none z-50 border"
-     style="background-color: var(--elevated); border-color: var(--hairline); color: var(--ink);">
-    <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style="background-color: rgba(49,208,124,.15); color: var(--online);">
+<!-- Custom Toast Notification -->
+<div id="toast" class="fixed bottom-6 right-6 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl transition-all duration-300 opacity-0 translate-y-4 pointer-events-none z-50 border" style="background-color: var(--elevated); border-color: var(--hairline); color: var(--ink);">
+    <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-500">
         <i data-lucide="check" class="w-4 h-4"></i>
     </div>
     <span id="toastMsg" class="text-xs font-semibold">Profile updated successfully!</span>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/auth.js"></script>
 <script src="js/profile.js"></script>
-<script>document.addEventListener("DOMContentLoaded", () => { if (window.lucide) lucide.createIcons(); });</script>
 </body>
 </html>
