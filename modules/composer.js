@@ -1,5 +1,6 @@
 /* ============================================================
  * 17-composer.js
+ * O nhap tin nhan: gui tin, emoji picker, resize khung nhap. Phu thuoc: 02, 03, 04, 09, 19 (goi ham o file sau, hop le vi cung runtime).
  * ============================================================ */
 function updateSendBtnState() {
     sendBtn.disabled = messageInput.value.trim().length === 0;
@@ -8,32 +9,36 @@ function updateSendBtnState() {
 function autoResizeMessageInput() {
     if (!messageInput) return;
     const shell = document.getElementById("composerShell");
-    const singleLineHeight = 24;
+    // Khớp với CSS #messageInput { height/line-height: 28px }
+    const singleLineHeight = 28;
     const viewportHeight = window.visualViewport?.height || window.innerHeight;
     const maxHeight = Math.min(320, Math.max(96, Math.round(viewportHeight * 0.42)));
     const saved = messageInput.value || "";
     const hasNewline = /\n/.test(saved);
 
-    if (shell) shell.classList.remove("is-multiline");
+    // Đo chiều cao không làm sập layout: dùng scrollHeight với height auto tạm
+    messageInput.style.height = "auto";
     messageInput.style.maxHeight = "none";
     messageInput.style.overflowY = "hidden";
+    const contentHeight = messageInput.scrollHeight || singleLineHeight;
 
-    messageInput.value = "M";
-    messageInput.style.height = "0px";
-    const oneLineScroll = messageInput.scrollHeight;
-    messageInput.value = saved;
-    messageInput.style.height = "0px";
-    const contentHeight = messageInput.scrollHeight;
+    // Baseline 1 dòng (không set value="M" — tránh flicker)
+    const isMultiline = hasNewline || contentHeight > singleLineHeight + 4;
 
-    const isMultiline = hasNewline || contentHeight > oneLineScroll + 2;
+    if (shell) {
+        shell.classList.toggle("is-multiline", isMultiline);
+        // Khóa bo góc pill — tránh bị rule khác / browser ghi đè khi focus
+        shell.style.borderRadius = "9999px";
+        shell.style.overflow = "hidden";
+    }
 
     if (!isMultiline) {
         messageInput.style.height = singleLineHeight + "px";
         messageInput.style.maxHeight = "";
+        messageInput.style.overflowY = "hidden";
         return;
     }
 
-    if (shell) shell.classList.add("is-multiline");
     messageInput.style.maxHeight = maxHeight + "px";
     messageInput.style.height = Math.min(Math.max(contentHeight, singleLineHeight), maxHeight) + "px";
     messageInput.style.overflowY = contentHeight > maxHeight ? "auto" : "hidden";
@@ -42,6 +47,16 @@ function autoResizeMessageInput() {
 messageInput.addEventListener("input", () => {
     autoResizeMessageInput();
     updateSendBtnState();
+});
+
+// Focus: khóa lại bo góc + height (tránh browser / :focus-visible làm vuông)
+messageInput.addEventListener("focus", () => {
+    autoResizeMessageInput();
+    const shell = document.getElementById("composerShell");
+    if (shell) {
+        shell.style.borderRadius = "9999px";
+        shell.style.overflow = "hidden";
+    }
 });
 
 window.addEventListener("resize", autoResizeMessageInput);
@@ -64,9 +79,11 @@ async function handleSend() {
     const chat = state.chats.find((c) => c.id === state.activeChatId);
     if (!chat) return;
 
+    // Trường hợp đang chỉnh sửa tin nhắn cũ (Edit Mode)
     if (editingMsgId) {
         const msg = chat.messages.find((m) => m.id === editingMsgId);
         if (msg) {
+            // Giữ nguyên phần "đang trả lời ai" (nếu có) khi sửa nội dung
             const { replyId, replySender, replyPreview } = parseReply(msg.text || "");
             const newText = replyId ? buildReplyPrefix(replyId, replySender, replyPreview) + text : text;
 
@@ -90,6 +107,7 @@ async function handleSend() {
         return;
     }
 
+    // Trường hợp gửi tin nhắn mới
     let finalText = text;
     if (replyingMsgId) {
         const repliedMsg = chat.messages.find((m) => m.id === replyingMsgId);
