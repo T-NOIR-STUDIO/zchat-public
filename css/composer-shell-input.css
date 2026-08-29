@@ -2,7 +2,7 @@
  * 10-composer-shell-input.css
  * Khung composer chính (#composerShell) và ô nhập tin nhắn (#messageInput) — chiều cao, bo góc, xử lý nhiều dòng.
  * ============================================================ */
-/* Composer: pill radius + clip nội dung; giữ bo góc mọi trạng thái (kể cả focus) */
+/* Composer: pill radius + clip; giữ bo góc mọi trạng thái */
 #composerShell {
     height: 44px;
     min-height: 44px;
@@ -31,9 +31,10 @@
 #messageInput {
     display: block;
     width: 100%;
-    height: 30px;
-    min-height: 30px;
-    line-height: 30px;
+    height: 28px;
+    min-height: 28px;
+    max-height: none;
+    line-height: 28px;
     padding: 0 !important;
     margin: 0;
     overflow-y: hidden;
@@ -69,5 +70,7 @@
 }
 
 #composerShell.is-multiline #messageInput {
-    /* Height set from JS */
+    line-height: 1.4;
+    height: auto;
+    min-height: 28px;
 }
