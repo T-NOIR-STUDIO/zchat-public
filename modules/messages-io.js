@@ -288,7 +288,6 @@ async function loadMessagesFromSupabase() {
                 console.error("[E2EE] preview decrypt:", e2eeErr);
             }
         })();
-	hideLoading();
 
         // Load full chat đang mở — nền, không await
         const activeChat = state.chats.find((c) => c.id === state.activeChatId);
