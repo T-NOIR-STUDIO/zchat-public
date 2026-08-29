@@ -61,7 +61,7 @@ textarea { field-sizing: content; }
 
 :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
 
-/* Composer: chặn outline + border-radius 4px khi focus ô chat */
+/* Composer: chặn outline chữ nhật khi focus ô chat */
 #messageInput:focus,
 #messageInput:focus-visible,
 #composerShell:focus-within {
