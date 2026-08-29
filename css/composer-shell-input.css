@@ -1,17 +1,16 @@
 /* ============================================================
  * 10-composer-shell-input.css
- * Khung composer + ô nhập: pill, tự giãn khi nhiều dòng, xuống dòng.
+ * Composer: 1 dòng pill, nhiều dòng giãn cao + bo góc mềm (giống ChatGPT).
  * ============================================================ */
 
 #composerShell {
     height: 44px;
     min-height: 44px;
-    border-radius: 9999px !important;
+    border-radius: 22px !important;
     overflow: hidden !important;
     box-sizing: border-box;
     align-items: center;
     transform: translateZ(0);
-    -webkit-transform: translateZ(0);
     isolation: isolate;
 }
 
@@ -19,17 +18,18 @@
 #composerShell:focus-within,
 #composerShell.is-multiline,
 #composerShell.is-multiline:focus-within {
-    border-radius: 9999px !important;
+    border-radius: 22px !important;
     overflow: hidden !important;
 }
 
+/* Nhiều dòng: chỉ tăng chiều cao, giữ bo góc */
 #composerShell.is-multiline {
     height: auto;
     min-height: 48px;
-    max-height: min(42vh, 320px);
+    max-height: min(42vh, 280px);
     align-items: flex-end;
-    padding-top: 8px;
-    padding-bottom: 8px;
+    padding-top: 10px;
+    padding-bottom: 10px;
 }
 
 #messageInput {
@@ -37,7 +37,7 @@
     width: 100%;
     height: 28px;
     min-height: 28px;
-    line-height: 28px;
+    line-height: 1.4;
     padding: 0 !important;
     margin: 0;
     overflow-y: hidden;
@@ -50,7 +50,7 @@
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     word-break: break-word;
-    font-size: 14px;
+    font-size: 14.5px;
     outline: none !important;
     box-shadow: none !important;
     background: transparent !important;
@@ -69,11 +69,10 @@
 }
 
 #messageInput::placeholder {
-    font-size: 14px;
+    font-size: 14.5px;
 }
 
 #composerShell.is-multiline #messageInput {
-    line-height: 1.4;
-    height: auto;
+    line-height: 1.45;
     min-height: 28px;
 }
