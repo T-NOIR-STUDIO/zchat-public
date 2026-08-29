@@ -268,32 +268,40 @@ async function loadMessagesFromSupabase() {
         state.chats.forEach((c) => {
             c.messages.sort((a, b) => a.createdAt - b.createdAt);
         });
-        (async () => {
-            if (!window.ZChatE2EE) return;
+
+        // 1) Decrypt preview tin nhắn TRƯỚC (chờ xong hoàn toàn, không chạy nền)
+        if (window.ZChatE2EE) {
             try {
                 await window.ZChatE2EE.ensureUserKeys(me);
                 const priv = window.ZChatE2EE.getLocalPrivateKey();
-                if (!priv) return;
-                const allMsgs = [];
-                state.chats.forEach((c) => c.messages.forEach((m) => allMsgs.push(m)));
-                if (!allMsgs.length) return;
-                await window.ZChatE2EE.decryptMessagesBatch(allMsgs, priv);
-                renderChatList();
+                if (priv) {
+                    const allMsgs = [];
+                    state.chats.forEach((c) => c.messages.forEach((m) => allMsgs.push(m)));
+                    if (allMsgs.length) {
+                        await window.ZChatE2EE.decryptMessagesBatch(allMsgs, priv);
+                    }
+                }
             } catch (e2eeErr) {
                 console.error("[E2EE] preview decrypt:", e2eeErr);
             }
-        })();
-        renderChatList();
-        hideLoading();
-        
-        const activeChat = state.chats.find((c) => c.id === state.activeChatId);
-        if (activeChat) {
-            loadMessagesForChat(activeChat.id).catch((e) =>
-                console.warn("[ZChat] background full load:", e)
-            );
         }
 
-        // Avatar đã có từ bulk users; refresh nhẹ nền nếu còn thiếu
+        // 2) Load & Decrypt full tin nhắn cho chat đang mở (nếu có)
+        const activeChat = state.chats.find((c) => c.id === state.activeChatId);
+        if (activeChat) {
+            try {
+                await loadMessagesForChat(activeChat.id);
+            } catch (e) {
+                console.warn("[ZChat] active chat load failed:", e);
+            }
+        }
+
+        // 3) Giải mã xong xuôi mới render UI và tắt Loading Spinner
+        renderChatList();
+        if (activeChat) renderMessages(activeChat);
+        hideLoading();
+
+        // 4) Refresh avatar ở nền
         refreshAllParticipantAvatars();
     } catch (err) {
         console.error("[ZChat] loadMessagesFromSupabase exception:", err);
@@ -493,3 +501,5 @@ async function postMessageToSupabase(msgObj, chatId) {
         console.error("[ZChat] postMessageToSupabase exception:", err);
     }
 }
+
+/* Upload ảnh chat → Supabase Storage bucket "chat-images" (public URL) */
