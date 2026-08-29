@@ -7,6 +7,7 @@
     height: 44px;
     min-height: 44px;
     border-radius: 9999px !important;
+    overflow: hidden;
     box-sizing: border-box;
     align-items: center;
 }
@@ -17,6 +18,7 @@
     padding-top: 8px;
     padding-bottom: 8px;
     border-radius: 9999px !important;
+    overflow: hidden;
 }
 #messageInput {
     display: block;
@@ -31,11 +33,19 @@
     resize: none;
     field-sizing: fixed;
     border: none;
+    border-radius: 0;
     box-sizing: border-box;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     word-break: break-word;
     font-size: 14px;
+    outline: none;
+}
+#messageInput:focus,
+#messageInput:focus-visible {
+    outline: none;
+    box-shadow: none;
+    border-radius: 0;
 }
 #messageInput::placeholder {
     font-size: 14px;
