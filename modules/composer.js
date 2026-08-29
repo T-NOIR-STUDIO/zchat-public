@@ -11,20 +11,18 @@ function lockComposerShellRadius() {
     if (!shell) return;
     shell.style.borderRadius = "9999px";
     shell.style.overflow = "hidden";
-    shell.style.transform = "translateZ(0)";
 }
 
 function autoResizeMessageInput() {
     if (!messageInput) return;
     const shell = document.getElementById("composerShell");
-    // Khớp CSS height/line-height 28px
     const singleLineHeight = 28;
     const viewportHeight = window.visualViewport?.height || window.innerHeight;
     const maxHeight = Math.min(320, Math.max(96, Math.round(viewportHeight * 0.42)));
     const saved = messageInput.value || "";
     const hasNewline = /\n/.test(saved);
 
-    // Đo chiều cao không set height=0 (tránh layout giật khi focus)
+    // Đo chiều cao không set height=0 (tránh giật layout)
     messageInput.style.height = "auto";
     messageInput.style.maxHeight = "none";
     messageInput.style.overflowY = "hidden";
@@ -32,9 +30,7 @@ function autoResizeMessageInput() {
 
     const isMultiline = hasNewline || contentHeight > singleLineHeight + 4;
 
-    if (shell) {
-        shell.classList.toggle("is-multiline", isMultiline);
-    }
+    if (shell) shell.classList.toggle("is-multiline", isMultiline);
     lockComposerShellRadius();
 
     if (!isMultiline) {
@@ -44,6 +40,7 @@ function autoResizeMessageInput() {
         return;
     }
 
+    // Tin dài: tự giãn cao, có scroll khi vượt max
     messageInput.style.maxHeight = maxHeight + "px";
     messageInput.style.height = Math.min(Math.max(contentHeight, singleLineHeight), maxHeight) + "px";
     messageInput.style.overflowY = contentHeight > maxHeight ? "auto" : "hidden";
@@ -54,7 +51,6 @@ messageInput.addEventListener("input", () => {
     updateSendBtnState();
 });
 
-// Chỉ khi focus mới bị vuông → khóa lại ngay lúc focus / blur
 messageInput.addEventListener("focus", () => {
     lockComposerShellRadius();
     autoResizeMessageInput();
