@@ -118,15 +118,15 @@ if (cancelReplyBtn) {
     cancelReplyBtn.addEventListener("click", cancelReplyMode);
 }
 
-// Cuộn tới tin nhắn gốc khi bấm reply, rồi lắc trái-phải
+// Nhảy thẳng tới tin nhắn gốc (không lướt), rồi lắc trái-phải
 function scrollToMessage(msgId) {
     const el = document.getElementById(`msg-${msgId}`);
     if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.scrollIntoView({ behavior: "auto", block: "center" });
     el.classList.remove("msg-reply-shake");
-    // đợi scroll xong một chút rồi lắc
-    setTimeout(() => {
+    // Jump xong → lắc ngay
+    requestAnimationFrame(() => {
         el.classList.add("msg-reply-shake");
         setTimeout(() => el.classList.remove("msg-reply-shake"), 600);
-    }, 280);
+    });
 }
