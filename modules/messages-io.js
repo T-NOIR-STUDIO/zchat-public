@@ -498,5 +498,3 @@ async function postMessageToSupabase(msgObj, chatId) {
         console.error("[ZChat] postMessageToSupabase exception:", err);
     }
 }
-
-/* Upload ảnh chat → Supabase Storage bucket "chat-images" (public URL) */
