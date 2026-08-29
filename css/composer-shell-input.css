@@ -1,8 +1,8 @@
 /* ============================================================
  * 10-composer-shell-input.css
- * Khung composer chính (#composerShell) và ô nhập tin nhắn (#messageInput) — chiều cao, bo góc, xử lý nhiều dòng.
+ * Khung composer + ô nhập: pill, tự giãn khi nhiều dòng, xuống dòng.
  * ============================================================ */
-/* Composer: pill radius + clip; giữ bo góc mọi trạng thái */
+
 #composerShell {
     height: 44px;
     min-height: 44px;
@@ -10,6 +10,9 @@
     overflow: hidden !important;
     box-sizing: border-box;
     align-items: center;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    isolation: isolate;
 }
 
 #composerShell:focus,
@@ -23,6 +26,7 @@
 #composerShell.is-multiline {
     height: auto;
     min-height: 48px;
+    max-height: min(42vh, 320px);
     align-items: flex-end;
     padding-top: 8px;
     padding-bottom: 8px;
@@ -33,7 +37,6 @@
     width: 100%;
     height: 28px;
     min-height: 28px;
-    max-height: none;
     line-height: 28px;
     padding: 0 !important;
     margin: 0;
@@ -57,7 +60,7 @@
 
 #messageInput:focus,
 #messageInput:focus-visible,
-#messageInput:focus-within {
+#messageInput:active {
     outline: none !important;
     box-shadow: none !important;
     border: none !important;
