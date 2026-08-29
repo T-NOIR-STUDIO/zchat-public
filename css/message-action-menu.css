@@ -86,11 +86,22 @@
     80% { transform: translateX(5px); }
 }
 
-/* 3 chấm ngang: trắng dark / xám đen light — căn giữa bong bóng */
+/* 3 chấm ngang — màu theo theme; z thấp, không xuyên composer */
 .btn-msg-menu {
+    z-index: 1;
     color: #ffffff;
+    pointer-events: auto;
 }
 html[data-theme="light"] .btn-msg-menu,
 [data-theme="light"] .btn-msg-menu {
     color: #3f3f46;
+}
+#composerBar {
+    z-index: 40 !important;
+    pointer-events: auto;
+}
+#messageFeed {
+    position: relative;
+    z-index: 1;
+    isolation: isolate;
 }
