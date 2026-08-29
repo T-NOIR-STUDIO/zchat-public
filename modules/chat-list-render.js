@@ -33,7 +33,21 @@ function renderChatList() {
     list.forEach((chat) => {
         const last = chat.messages[chat.messages.length - 1] || null;
         const isMine = last && last.senderId === "me";
-        const previewText = last ? (previewForMessage(last) || (last.attachment ? "📎 Attachment" : "")) : "No messages yet";
+        const lang = localStorage.getItem("zchat_lang") || "en";
+        const dict = (typeof i18n !== "undefined" && i18n[lang]) ? i18n[lang] : {};
+        let previewText;
+        if (!last) {
+            previewText = dict.noMessagesYet || "No messages yet";
+        } else {
+            const { body } = parseReply(last.text || "");
+            if (body && body.startsWith("[IMAGE]:")) {
+                previewText = isMine
+                    ? (dict.youSentPhoto || "You sent a photo")
+                    : (dict.sentPhoto || "Sent a photo");
+            } else {
+                previewText = previewForMessage(last) || (last.attachment ? "📎 Attachment" : "");
+            }
+        }
         const active = chat.id === state.activeChatId;
         const pinned = isChatPinned(chat.id);
         const receiptIcon =
@@ -113,35 +127,23 @@ function isMobileView() {
 
 function openSidebar() {
     if (!sidebarWrap) return;
-    sidebarWrap.classList.remove("sidebar-away");
-    sidebarWrap.classList.remove("-translate-x-full"); // legacy CDN
+    sidebarWrap.classList.remove("-translate-x-full");
     if (sidebarScrim) sidebarScrim.classList.add("hidden");
-    // Mobile: hiện lại bottom nav + khoảng chừa
+    // Trên mobile, quay lại danh sách chat thì hiện lại bottom nav + trả lại khoảng chừa cho nó
     if (isMobileView() && bottomNav) {
-        bottomNav.classList.remove("nav-hidden-mobile");
         bottomNav.classList.remove("hidden");
-        if (appShell) {
-            appShell.classList.remove("app-shell-chat-open");
-            appShell.classList.add("pb-[60px]");
-        }
+        if (appShell) appShell.classList.add("pb-[60px]");
     }
 }
 function closeSidebar() {
-    // Mobile: trượt list chat ra ngoài + ẩn bottom nav; desktop luôn hiện list
+    // Chỉ ẩn list trên mobile khi vào chat; desktop luôn hiện list
     if (!sidebarWrap) return;
     if (isMobileView()) {
-        sidebarWrap.classList.add("sidebar-away");
-        sidebarWrap.classList.add("-translate-x-full"); // legacy CDN
-        if (bottomNav) {
-            bottomNav.classList.add("nav-hidden-mobile");
-            bottomNav.classList.add("hidden");
-        }
-        if (appShell) {
-            appShell.classList.add("app-shell-chat-open");
-            appShell.classList.remove("pb-[60px]");
-        }
+        sidebarWrap.classList.add("-translate-x-full");
+        // Ẩn bottom nav khi đang mở 1 chat trên mobile, đồng thời bỏ khoảng chừa pb-[60px] để không còn khe hở
+        if (bottomNav) bottomNav.classList.add("hidden");
+        if (appShell) appShell.classList.remove("pb-[60px]");
     } else {
-        sidebarWrap.classList.remove("sidebar-away");
         sidebarWrap.classList.remove("-translate-x-full");
     }
     if (sidebarScrim) sidebarScrim.classList.add("hidden");
@@ -155,31 +157,13 @@ window.addEventListener("resize", () => {
     if (!bottomNav) return;
     if (!isMobileView()) {
         bottomNav.classList.remove("hidden");
-        bottomNav.classList.remove("nav-hidden-mobile");
-        if (sidebarWrap) sidebarWrap.classList.remove("sidebar-away");
-        if (appShell) {
-            appShell.classList.remove("app-shell-chat-open");
-            appShell.classList.add("pb-[60px]");
-        }
-    } else if (
-        state.activeChatId &&
-        sidebarWrap &&
-        (sidebarWrap.classList.contains("sidebar-away") ||
-            sidebarWrap.classList.contains("-translate-x-full"))
-    ) {
+        if (appShell) appShell.classList.add("pb-[60px]");
+    } else if (state.activeChatId && sidebarWrap && sidebarWrap.classList.contains("-translate-x-full")) {
         bottomNav.classList.add("hidden");
-        bottomNav.classList.add("nav-hidden-mobile");
-        if (appShell) {
-            appShell.classList.add("app-shell-chat-open");
-            appShell.classList.remove("pb-[60px]");
-        }
+        if (appShell) appShell.classList.remove("pb-[60px]");
     } else {
         bottomNav.classList.remove("hidden");
-        bottomNav.classList.remove("nav-hidden-mobile");
-        if (appShell) {
-            appShell.classList.remove("app-shell-chat-open");
-            appShell.classList.add("pb-[60px]");
-        }
+        if (appShell) appShell.classList.add("pb-[60px]");
     }
 });
 
