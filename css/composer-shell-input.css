@@ -2,24 +2,32 @@
  * 10-composer-shell-input.css
  * Khung composer chính (#composerShell) và ô nhập tin nhắn (#messageInput) — chiều cao, bo góc, xử lý nhiều dòng.
  * ============================================================ */
-/* Composer: cao hơn chút, pill max radius; + và Send khớp */
+/* Composer: pill radius + clip nội dung; giữ bo góc mọi trạng thái (kể cả focus) */
 #composerShell {
     height: 44px;
     min-height: 44px;
     border-radius: 9999px !important;
-    overflow: hidden;
+    overflow: hidden !important;
     box-sizing: border-box;
     align-items: center;
 }
+
+#composerShell:focus,
+#composerShell:focus-within,
+#composerShell.is-multiline,
+#composerShell.is-multiline:focus-within {
+    border-radius: 9999px !important;
+    overflow: hidden !important;
+}
+
 #composerShell.is-multiline {
     height: auto;
     min-height: 48px;
     align-items: flex-end;
     padding-top: 8px;
     padding-bottom: 8px;
-    border-radius: 9999px !important;
-    overflow: hidden;
 }
+
 #messageInput {
     display: block;
     width: 100%;
@@ -32,24 +40,34 @@
     overflow-x: hidden;
     resize: none;
     field-sizing: fixed;
-    border: none;
-    border-radius: 0;
+    border: none !important;
+    border-radius: 0 !important;
     box-sizing: border-box;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     word-break: break-word;
     font-size: 14px;
-    outline: none;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    -webkit-appearance: none;
+    appearance: none;
 }
+
 #messageInput:focus,
-#messageInput:focus-visible {
-    outline: none;
-    box-shadow: none;
-    border-radius: 0;
+#messageInput:focus-visible,
+#messageInput:focus-within {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
 }
+
 #messageInput::placeholder {
     font-size: 14px;
 }
+
 #composerShell.is-multiline #messageInput {
     /* Height set from JS */
 }
