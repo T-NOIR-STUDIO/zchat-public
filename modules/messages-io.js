@@ -269,7 +269,7 @@ async function loadMessagesFromSupabase() {
             c.messages.sort((a, b) => a.createdAt - b.createdAt);
         });
 
-        // 1) Decrypt preview tin nhắn TRƯỚC (chờ xong hoàn toàn, không chạy nền)
+        // 1) Decrypt preview tin nhắn TRƯỚC (chờ xong hoàn toàn)
         if (window.ZChatE2EE) {
             try {
                 await window.ZChatE2EE.ensureUserKeys(me);
@@ -296,13 +296,20 @@ async function loadMessagesFromSupabase() {
             }
         }
 
-        // 3) Giải mã xong xuôi mới render UI và tắt Loading Spinner
+        // 3) Cập nhật tick xanh & avatar hoàn tất trước khi hiển thị UI
+        if (typeof refreshAllParticipantAvatars === "function") {
+            try {
+                await refreshAllParticipantAvatars();
+            } catch (avErr) {
+                console.warn("[ZChat] refresh avatars failed:", avErr);
+            }
+        }
+
+        // 4) Render UI chuẩn chỉnh & Tắt Loading Spinner cùng lúc
         renderChatList();
         if (activeChat) renderMessages(activeChat);
         hideLoading();
 
-        // 4) Refresh avatar ở nền
-        refreshAllParticipantAvatars();
     } catch (err) {
         console.error("[ZChat] loadMessagesFromSupabase exception:", err);
         hideLoading();
