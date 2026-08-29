@@ -6,7 +6,7 @@
 .verified-name {
     display: inline-flex;
     align-items: flex-end;
-    gap: 2px;
+    gap: 1px;
     line-height: 1;
     max-width: 100%;
     min-width: 0;
