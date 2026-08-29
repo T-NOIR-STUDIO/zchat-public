@@ -37,7 +37,7 @@
     width: 100%;
     height: 28px;
     min-height: 28px;
-    line-height: 1.4;
+    line-height: 28px; /* căn giữa chữ Message / 1 dòng */
     padding: 0 !important;
     margin: 0;
     overflow-y: hidden;
@@ -56,6 +56,7 @@
     background: transparent !important;
     -webkit-appearance: none;
     appearance: none;
+    vertical-align: middle;
 }
 
 #messageInput:focus,
@@ -70,9 +71,13 @@
 
 #messageInput::placeholder {
     font-size: 14.5px;
+    line-height: 28px;
+    vertical-align: middle;
+    opacity: 1;
 }
 
 #composerShell.is-multiline #messageInput {
     line-height: 1.45;
     min-height: 28px;
+    height: auto;
 }
