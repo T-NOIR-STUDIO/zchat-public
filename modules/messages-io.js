@@ -269,9 +269,8 @@ async function loadMessagesFromSupabase() {
             c.messages.sort((a, b) => a.createdAt - b.createdAt);
         });
 
-        // Hiện list ngay — tắt spinner trước khi decrypt / load full
         renderChatList();
-        hideLoading();
+      
 
         // Decrypt preview (chỉ vài tin cuối) — nền, không chặn UI
         (async () => {
@@ -289,6 +288,7 @@ async function loadMessagesFromSupabase() {
                 console.error("[E2EE] preview decrypt:", e2eeErr);
             }
         })();
+	hideLoading();
 
         // Load full chat đang mở — nền, không await
         const activeChat = state.chats.find((c) => c.id === state.activeChatId);
