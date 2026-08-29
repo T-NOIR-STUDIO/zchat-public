@@ -9,7 +9,7 @@ function updateSendBtnState() {
 function lockComposerShellRadius() {
     const shell = document.getElementById("composerShell");
     if (!shell) return;
-    shell.style.borderRadius = "9999px";
+    shell.style.borderRadius = "22px";
     shell.style.overflow = "hidden";
 }
 
@@ -18,11 +18,10 @@ function autoResizeMessageInput() {
     const shell = document.getElementById("composerShell");
     const singleLineHeight = 28;
     const viewportHeight = window.visualViewport?.height || window.innerHeight;
-    const maxHeight = Math.min(320, Math.max(96, Math.round(viewportHeight * 0.42)));
-    const saved = messageInput.value || "";
-    const hasNewline = /\n/.test(saved);
+    const maxHeight = Math.min(280, Math.max(96, Math.round(viewportHeight * 0.4)));
 
-    // Đo chiều cao không set height=0 (tránh giật layout)
+    const hasNewline = /\n/.test(messageInput.value || "");
+
     messageInput.style.height = "auto";
     messageInput.style.maxHeight = "none";
     messageInput.style.overflowY = "hidden";
@@ -40,9 +39,10 @@ function autoResizeMessageInput() {
         return;
     }
 
-    // Tin dài: tự giãn cao, có scroll khi vượt max
+    // Giãn cao theo nội dung, vẫn bo góc (CSS 22px)
+    const h = Math.min(Math.max(contentHeight, singleLineHeight), maxHeight);
     messageInput.style.maxHeight = maxHeight + "px";
-    messageInput.style.height = Math.min(Math.max(contentHeight, singleLineHeight), maxHeight) + "px";
+    messageInput.style.height = h + "px";
     messageInput.style.overflowY = contentHeight > maxHeight ? "auto" : "hidden";
 }
 
