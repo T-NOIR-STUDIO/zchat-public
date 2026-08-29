@@ -268,7 +268,6 @@ async function loadMessagesFromSupabase() {
         state.chats.forEach((c) => {
             c.messages.sort((a, b) => a.createdAt - b.createdAt);
         });
-        renderChatList();
         (async () => {
             if (!window.ZChatE2EE) return;
             try {
@@ -284,6 +283,7 @@ async function loadMessagesFromSupabase() {
                 console.error("[E2EE] preview decrypt:", e2eeErr);
             }
         })();
+        renderChatList();
         hideLoading();
         
         const activeChat = state.chats.find((c) => c.id === state.activeChatId);
