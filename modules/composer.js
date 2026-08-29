@@ -6,31 +6,36 @@ function updateSendBtnState() {
     sendBtn.disabled = messageInput.value.trim().length === 0;
 }
 
+function lockComposerShellRadius() {
+    const shell = document.getElementById("composerShell");
+    if (!shell) return;
+    shell.style.borderRadius = "9999px";
+    shell.style.overflow = "hidden";
+    shell.style.transform = "translateZ(0)";
+}
+
 function autoResizeMessageInput() {
     if (!messageInput) return;
     const shell = document.getElementById("composerShell");
-    // Khớp với CSS #messageInput { height/line-height: 28px }
+    // Khớp CSS height/line-height 28px
     const singleLineHeight = 28;
     const viewportHeight = window.visualViewport?.height || window.innerHeight;
     const maxHeight = Math.min(320, Math.max(96, Math.round(viewportHeight * 0.42)));
     const saved = messageInput.value || "";
     const hasNewline = /\n/.test(saved);
 
-    // Đo chiều cao không làm sập layout: dùng scrollHeight với height auto tạm
+    // Đo chiều cao không set height=0 (tránh layout giật khi focus)
     messageInput.style.height = "auto";
     messageInput.style.maxHeight = "none";
     messageInput.style.overflowY = "hidden";
     const contentHeight = messageInput.scrollHeight || singleLineHeight;
 
-    // Baseline 1 dòng (không set value="M" — tránh flicker)
     const isMultiline = hasNewline || contentHeight > singleLineHeight + 4;
 
     if (shell) {
         shell.classList.toggle("is-multiline", isMultiline);
-        // Khóa bo góc pill — tránh bị rule khác / browser ghi đè khi focus
-        shell.style.borderRadius = "9999px";
-        shell.style.overflow = "hidden";
     }
+    lockComposerShellRadius();
 
     if (!isMultiline) {
         messageInput.style.height = singleLineHeight + "px";
@@ -49,15 +54,12 @@ messageInput.addEventListener("input", () => {
     updateSendBtnState();
 });
 
-// Focus: khóa lại bo góc + height (tránh browser / :focus-visible làm vuông)
+// Chỉ khi focus mới bị vuông → khóa lại ngay lúc focus / blur
 messageInput.addEventListener("focus", () => {
+    lockComposerShellRadius();
     autoResizeMessageInput();
-    const shell = document.getElementById("composerShell");
-    if (shell) {
-        shell.style.borderRadius = "9999px";
-        shell.style.overflow = "hidden";
-    }
 });
+messageInput.addEventListener("blur", lockComposerShellRadius);
 
 window.addEventListener("resize", autoResizeMessageInput);
 if (window.visualViewport) {
