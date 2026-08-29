@@ -61,10 +61,12 @@ textarea { field-sizing: content; }
 
 :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
 
-/* Composer: không dùng outline chữ nhật / border-radius 4px khi focus */
+/* Composer: chặn outline + border-radius 4px khi focus ô chat */
+#messageInput:focus,
 #messageInput:focus-visible,
 #composerShell:focus-within {
-    outline: none;
+    outline: none !important;
+    box-shadow: none !important;
 }
 
 .typing-dot { animation: typing-dot 1.2s ease-in-out infinite; }
