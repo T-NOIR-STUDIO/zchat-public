@@ -61,6 +61,12 @@ textarea { field-sizing: content; }
 
 :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
 
+/* Composer: không dùng outline chữ nhật / border-radius 4px khi focus */
+#messageInput:focus-visible,
+#composerShell:focus-within {
+    outline: none;
+}
+
 .typing-dot { animation: typing-dot 1.2s ease-in-out infinite; }
 .typing-dot:nth-child(2) { animation-delay: .15s; }
 .typing-dot:nth-child(3) { animation-delay: .3s; }
@@ -73,33 +79,4 @@ textarea { field-sizing: content; }
 @keyframes fade-in {
     0% { opacity: 0; transform: translateY(4px); }
     100% { opacity: 1; transform: translateY(0); }
-}
-
-/* ZChat mobile: sidebar slide (không phụ thuộc Tailwind purge) */
-#sidebarWrap {
-    transition: transform 0.2s ease;
-}
-@media (max-width: 767.98px) {
-    #sidebarWrap.sidebar-away {
-        transform: translateX(-100%);
-        pointer-events: none;
-    }
-    #appShell.app-shell-chat-open {
-        padding-bottom: 0 !important;
-    }
-    #appShell:not(.app-shell-chat-open) {
-        padding-bottom: 60px;
-    }
-    #bottomNav.nav-hidden-mobile {
-        display: none !important;
-    }
-}
-@media (min-width: 768px) {
-    #sidebarWrap.sidebar-away {
-        transform: none;
-        pointer-events: auto;
-    }
-    #bottomNav.nav-hidden-mobile {
-        display: flex !important;
-    }
 }
