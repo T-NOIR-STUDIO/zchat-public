@@ -59,9 +59,17 @@ body { background-color: var(--canvas); color: var(--ink); transition: backgroun
 
 textarea { field-sizing: content; }
 
-:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
+:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+}
 
-/* Composer: chặn outline chữ nhật khi focus ô chat */
+#messageInput:focus,
+#messageInput:focus-visible,
+#composerShell:focus-within {
+    outline: none !important;
+}
+
 #messageInput:focus,
 #messageInput:focus-visible,
 #composerShell:focus-within {
