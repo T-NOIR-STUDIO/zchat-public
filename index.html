@@ -29,25 +29,25 @@
     <link rel="stylesheet" href="css/video-call.css">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 
-<style id="appLoadingStyle">
-#appLoading{
-  position:fixed;inset:0;z-index:99999;
-  display:flex;align-items:center;justify-content:center;
-  background:#000;
-  transition:opacity .25s ease;
-}
-#appLoading.is-done{opacity:0;pointer-events:none;}
-#appLoading .app-spinner{
-  width:22px;height:22px;
-  border:3px solid rgba(28,155,240,.25);
-  border-top-color:#1c9bf0;
-  border-radius:50%;
-  animation:appSpin .7s linear infinite;
-}
-@keyframes appSpin{to{transform:rotate(360deg)}}
-</style>
+    <style id="appLoadingStyle">
+        #appLoading{
+            position:fixed;inset:0;z-index:99999;
+            display:flex;align-items:center;justify-content:center;
+            background:#000;
+            transition:opacity .25s ease;
+        }
+        #appLoading.is-done{opacity:0;pointer-events:none;}
+        #appLoading .app-spinner{
+            width:22px;height:22px;
+            border:3px solid rgba(28,155,240,.25);
+            border-top-color:#1c9bf0;
+            border-radius:50%;
+            animation:appSpin .7s linear infinite;
+        }
+        @keyframes appSpin{to{transform:rotate(360deg)}}
+    </style>
 </head>
 
 <body class="h-full font-body" style="background-color: var(--canvas); color: var(--ink);">
@@ -465,14 +465,14 @@
                         </button>
                         <input type="file" id="fileInput" class="hidden"/>
 
-                        <div id="composerShell" class="flex flex-1 min-h-10 items-center gap-1.5 rounded-[22px] pl-4 pr-1.5 py-0"
-                             style="background-color: color-mix(in srgb, var(--elevated2) 72%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--transparent-border);">
+                        <div id="composerShell" class="flex flex-1 min-h-10 items-center gap-1.5 pl-4 pr-1.5 py-0"
+                             style="background-color: color-mix(in srgb, var(--elevated2) 72%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--transparent-border); border-radius: 9999px; overflow: hidden; transform: translateZ(0);">
                             <textarea
                                     id="messageInput"
                                     rows="1"
                                     placeholder="Message"
                                     class="flex-1 resize-none bg-transparent py-2 text-[14.5px] leading-relaxed focus:outline-none scrollbar-thin"
-                                    style="color: var(--ink);"
+                                    style="color: var(--ink); outline: none; border: none; border-radius: 0; background: transparent;"
                             ></textarea>
 
                             <button type="button" id="emojiBtn" aria-label="Emoji picker"
