@@ -268,11 +268,7 @@ async function loadMessagesFromSupabase() {
         state.chats.forEach((c) => {
             c.messages.sort((a, b) => a.createdAt - b.createdAt);
         });
-
         renderChatList();
-      
-
-        // Decrypt preview (chỉ vài tin cuối) — nền, không chặn UI
         (async () => {
             if (!window.ZChatE2EE) return;
             try {
@@ -288,8 +284,8 @@ async function loadMessagesFromSupabase() {
                 console.error("[E2EE] preview decrypt:", e2eeErr);
             }
         })();
-
-        // Load full chat đang mở — nền, không await
+        hideLoading();
+        
         const activeChat = state.chats.find((c) => c.id === state.activeChatId);
         if (activeChat) {
             loadMessagesForChat(activeChat.id).catch((e) =>
