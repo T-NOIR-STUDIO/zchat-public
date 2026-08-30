@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full" data-theme="dark">
 <script>
-/* Sync theme with Settings (localStorage zchat_theme) before paint */
 (function () {
   try {
     var th = localStorage.getItem("zchat_theme") || "dark";
@@ -14,7 +13,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Profile / ZChat</title>
+    <title>Profile — ZChat</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,17 +35,22 @@
         }
 
         #presenceDotPreview { display: none !important; }
-        #usernameField,
-        #usernameField:focus,
-        #usernameField:focus-visible {
-            border-radius: 1rem !important;
-            outline: none !important;
-            box-shadow: none !important;
-        }
         #avatarPopover { min-width: 22rem; }
         #avatarPopover .color-swatch { width: 2.5rem !important; height: 2.5rem !important; }
         #avatarPopover .emoji-swatch { font-size: 1.35rem !important; padding: 0.45rem !important; }
-        #avatarPopover .avatar-tab { font-size: 0.8rem !important; padding-top: 0.45rem !important; padding-bottom: 0.45rem !important; }
+        #avatarPopover .avatar-tab {
+            font-size: 0.8rem !important;
+            padding-top: 0.45rem !important;
+            padding-bottom: 0.45rem !important;
+            background-color: transparent;
+            color: var(--muted);
+            border: none;
+            cursor: pointer;
+        }
+        #avatarPopover .avatar-tab.is-active {
+            background-color: #1c9bf0 !important;
+            color: #ffffff !important;
+        }
     </style>
 </head>
 
@@ -89,12 +93,6 @@
                 </li>
             </ul>
         </div>
-        <a href="profile.html" id="profileBtn" aria-label="Profile"
-           class="flex rounded-full items-center justify-center shrink-0">
-            <div id="profileAvatar"
-                 class="flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold select-none"
-                 style="background-color: var(--elevated); color: var(--ink);"></div>
-        </a>
     </nav>
 
     <div class="flex-1 min-w-0 overflow-y-auto scrollbar-thin">
@@ -162,7 +160,7 @@
                         <label for="usernameField" class="text-sm font-semibold">Username</label>
                         <input id="usernameField" type="text" maxlength="24"
                                class="w-full rounded-2xl px-4 py-3 text-sm focus:outline-none"
-                               style="background-color: var(--elevated); color: var(--ink); border-radius: 1rem;" />
+                               style="background-color: var(--elevated); color: var(--ink);" />
                         <p id="usernamePreview" class="text-xs" style="color: var(--faint);"></p>
                         <p id="usernameError" class="hidden text-xs" style="color: var(--dnd);">Username can't be empty.</p>
                     </section>
