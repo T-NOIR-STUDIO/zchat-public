@@ -1,10 +1,8 @@
 /* ============================================================
- * 12-render-messages.js
- * Render khung tin nhắn (bong bóng chat) + typing indicator. Phụ thuộc: 02, 03, 04, 05, 09, 11.
+ * 12-render-messages.js (OPTIMIZED)
  * ============================================================ */
 function renderMessages(chat) {
     const msgs = chat.messages;
-    messageFeed.innerHTML = "";
 
     if (msgs.length === 0) {
         messageFeed.innerHTML = `
@@ -15,7 +13,9 @@ function renderMessages(chat) {
         return;
     }
 
-    // Seen chỉ hiện dưới tin nhắn cuối cùng của mình
+    // ⚡ 1. NẠP VÙNG ĐỆM ẨN (DocumentFragment) - Tránh Reflow 200 lần
+    const fragment = document.createDocumentFragment();
+
     let lastMineIdx = -1;
     for (let k = msgs.length - 1; k >= 0; k--) {
         if (msgs[k].senderId === "me") { lastMineIdx = k; break; }
@@ -32,12 +32,16 @@ function renderMessages(chat) {
             const sep = document.createElement("div");
             sep.className = "my-4 flex items-center justify-center";
             sep.innerHTML = `<span class="rounded-pill px-3 py-1 text-[11px] font-medium" style="background-color: var(--elevated); color: var(--muted);">${dayLabel(msg.createdAt)}</span>`;
-            messageFeed.appendChild(sep);
+            fragment.appendChild(sep);
         }
 
         const wrap = document.createElement("div");
         wrap.id = `msg-${msg.id}`;
         wrap.className = (showTail ? "mb-5 " : "mb-1 ") + "group relative flex w-full " + (isMine ? "justify-end" : "justify-start");
+        
+        // Lưu data vào dataset để dùng Ủy quyền sự kiện (Event Delegation)
+        wrap.dataset.msgId = msg.id;
+        wrap.dataset.isMine = isMine;
 
         let attachmentHtml = "";
         if (msg.attachment) {
@@ -54,7 +58,6 @@ function renderMessages(chat) {
             ? "background-color: var(--ink); color: var(--canvas);"
             : "background-color: var(--elevated); color: var(--ink);";
 
-        // Tách phần "đang trả lời tin nhắn nào" ra khỏi nội dung thật
         const { replyId, replySender, replyPreview, body } = parseReply(msg.text || "");
 
         let contentHtml = "";
@@ -70,7 +73,6 @@ function renderMessages(chat) {
         }
 
         let shortReplyPrev = String(replyPreview || "").replace(/\s+/g, " ").trim();
-        // Rút gọn để mobile không mất chữ
         const replyMax = 28;
         if (shortReplyPrev.length > replyMax) shortReplyPrev = shortReplyPrev.slice(0, replyMax).trimEnd() + "…";
 
@@ -95,7 +97,6 @@ function renderMessages(chat) {
             }
         }
 
-        // Nút menu 3 chấm — luôn hiện (mờ), rõ hơn khi hover / touch
         const menuBtnHtml = `
                 <button type="button" class="btn-msg-menu absolute top-1/2 -translate-y-1/2 ${isMine ? "-left-9" : "-right-9"} flex h-7 w-7 items-center justify-center rounded-full opacity-50 hover:opacity-100 hover:bg-elevated2 transition-all z-10" style="color: var(--muted);" title="More">
                     <i data-lucide="more-horizontal" class="w-4 h-4"></i>
@@ -112,7 +113,6 @@ function renderMessages(chat) {
             ? `<i data-lucide="timer" class="w-[11px] h-[11px] shrink-0" style="color: var(--faint); opacity: 0.85;" title="Disappearing message"></i>`
             : "";
 
-        // Chỉ tin cuối mình gửi mới hiện Seen
         const seenHtml = (isMine && i === lastMineIdx) ? statusIconMarkup(msg.status) : "";
         const metaInner = `${timerIcon}${seenHtml}`;
         const hasMetaContent = !!timerIcon || !!seenHtml;
@@ -132,89 +132,52 @@ function renderMessages(chat) {
           ${meta}
         </div>`;
 
-        const btnMenu = wrap.querySelector(".btn-msg-menu");
-        if (btnMenu) {
-            btnMenu.addEventListener("click", (e) => {
-                e.stopPropagation();
-                const rect = btnMenu.getBoundingClientRect();
-                // Neo giữa nút 3 chấm — ổn định hơn trên mobile
-                openMessageActionMenu(
-                    msg, chat, isMine,
-                    rect.left + rect.width / 2,
-                    rect.bottom + 6
-                );
-            });
-        }
-
-        const imgEl = wrap.querySelector(".msg-image");
-        if (imgEl) {
-            imgEl.addEventListener("click", () => openImageLightbox(imgEl.dataset.fullSrc));
-        }
-
-        const quoteEl = wrap.querySelector(".msg-reply-quote");
-        if (quoteEl) {
-            quoteEl.addEventListener("click", (e) => {
-                e.stopPropagation();
-                scrollToMessage(quoteEl.dataset.replyTarget);
-            });
-        }
-
-        // Nhấn giữ (long-press) trên mobile để mở menu ngay tại điểm chạm
-        const pressable = wrap.querySelector(".msg-bubble-pressable");
-        if (pressable) {
-            let pressTimer = null;
-            let pressStartX = 0, pressStartY = 0, pressMoved = false;
-
-            const clearPress = () => {
-                if (pressTimer) clearTimeout(pressTimer);
-                pressTimer = null;
-                pressable.classList.remove("is-pressing");
-            };
-
-            pressable.addEventListener("touchstart", (e) => {
-                if (imgEl && e.target.closest(".msg-reply-quote")) return;
-                const touch = e.touches[0];
-                pressStartX = touch.clientX;
-                pressStartY = touch.clientY;
-                pressMoved = false;
-                pressTimer = setTimeout(() => {
-                    pressable.classList.add("is-pressing");
-                    if (navigator.vibrate) { try { navigator.vibrate(12); } catch (_) {} }
-                    // Dùng tọa độ đã lưu — tránh touch object bị reset trên mobile
-                    openMessageActionMenu(msg, chat, isMine, pressStartX, pressStartY);
-                    clearPress();
-                }, 480);
-            }, { passive: true });
-
-            pressable.addEventListener("touchmove", (e) => {
-                const touch = e.touches[0];
-                if (Math.abs(touch.clientX - pressStartX) > 10 || Math.abs(touch.clientY - pressStartY) > 10) {
-                    pressMoved = true;
-                    clearPress();
-                }
-            }, { passive: true });
-
-            pressable.addEventListener("touchend", clearPress);
-            pressable.addEventListener("touchcancel", clearPress);
-        }
-
-        messageFeed.appendChild(wrap);
+        // Đẩy vào Fragment ẩn thay vì append trực tiếp vào DOM
+        fragment.appendChild(wrap);
     });
 
+    // ⚡ 2. CHỈ RENDER ĐÚNG 1 LẦN DUY NHẤT VÀO DOM THẬT
+    messageFeed.innerHTML = "";
+    messageFeed.appendChild(fragment);
+
+    // ⚡ 3. CUỘN XUỐNG ĐÁY & TẢI ICON
     messageFeed.scrollTop = messageFeed.scrollHeight;
-    icons();
+    if (typeof icons === "function") icons();
 }
 
-function renderTypingIndicator(chat) {
-    const wrap = document.createElement("div");
-    wrap.id = "typingIndicator";
-    wrap.className = "flex w-full justify-start mb-3";
-    wrap.innerHTML = `
-      <div class="rounded-bubble rounded-bl-md px-4 py-3 flex items-center gap-1" style="background-color: var(--elevated);">
-        <span class="typing-dot w-1.5 h-1.5 rounded-full inline-block" style="background-color: var(--faint);"></span>
-        <span class="typing-dot w-1.5 h-1.5 rounded-full inline-block" style="background-color: var(--faint);"></span>
-        <span class="typing-dot w-1.5 h-1.5 rounded-full inline-block" style="background-color: var(--faint);"></span>
-      </div>`;
-    messageFeed.appendChild(wrap);
-    messageFeed.scrollTop = messageFeed.scrollHeight;
+// ⚡ 4. ỦY QUYỀN SỰ KIỆN (EVENT DELEGATION) CHO TOÀN BỘ MESSAGE FEED
+// (Chỉ Đăng ký 1 Listener duy nhất trên messageFeed thay vì 1000 listeners trên từng tin nhắn)
+if (typeof messageFeed !== "undefined" && messageFeed) {
+    messageFeed.addEventListener("click", (e) => {
+        // Nút 3 chấm Menu
+        const btnMenu = e.target.closest(".btn-msg-menu");
+        if (btnMenu) {
+            e.stopPropagation();
+            const wrap = btnMenu.closest("[data-msg-id]");
+            if (wrap) {
+                const rect = btnMenu.getBoundingClientRect();
+                const msgId = wrap.dataset.msgId;
+                const isMine = wrap.dataset.isMine === "true";
+                // Tìm msg object trong currentChat/activeChat của ông
+                const msg = activeChat?.messages.find(m => String(m.id) === String(msgId));
+                if (msg) openMessageActionMenu(msg, activeChat, isMine, rect.left + rect.width / 2, rect.bottom + 6);
+            }
+            return;
+        }
+
+        // Click Xem Ảnh Lightbox
+        const imgEl = e.target.closest(".msg-image");
+        if (imgEl) {
+            openImageLightbox(imgEl.dataset.fullSrc);
+            return;
+        }
+
+        // Click Quote Trả Lời
+        const quoteEl = e.target.closest(".msg-reply-quote");
+        if (quoteEl) {
+            e.stopPropagation();
+            scrollToMessage(quoteEl.dataset.replyTarget);
+            return;
+        }
+    });
 }
