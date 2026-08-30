@@ -1,5 +1,16 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full" data-theme="dark">
+<script>
+/* Sync theme with Settings (localStorage zchat_theme) before paint */
+(function () {
+  try {
+    var th = localStorage.getItem("zchat_theme") || "dark";
+    if (th !== "light" && th !== "dark") th = "dark";
+    document.documentElement.setAttribute("data-theme", th);
+    document.documentElement.style.backgroundColor = th === "light" ? "#FFFFFF" : "#000000";
+  } catch (e) {}
+})();
+</script>
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -11,6 +22,7 @@
     <link rel="icon" href="/assets/img/favicon-32.png" type="image/png" sizes="any" />
     <link rel="icon" href="/assets/img/favicon-16.png" type="image/png" sizes="any" />
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/img/apple-touch-icon.png" />
+    <link rel="stylesheet" href="css/base-theme.css">
     <link rel="stylesheet" href="css/tailwind.min.css">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
@@ -78,9 +90,10 @@
             </ul>
         </div>
         <a href="profile.html" id="profileBtn" aria-label="Profile"
-           class="hidden sm:flex rounded-full items-center justify-center shrink-0">
+           class="flex rounded-full items-center justify-center shrink-0">
             <div id="profileAvatar"
-                 class="flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold select-none"></div>
+                 class="flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold select-none"
+                 style="background-color: var(--elevated); color: var(--ink);"></div>
         </a>
     </nav>
 
@@ -89,13 +102,12 @@
 
             <!-- Header -->
             <header class="flex items-center gap-3 px-5 py-4 sm:px-6" style="border-bottom: 1px solid var(--hairline);">
-                <a href="index.html"
-                   class="flex items-center gap-2 rounded-pill px-4 py-2 text-sm font-semibold transition-colors"
+                <a href="index.html" id="backToChatBtn" aria-label="Back"
+                   class="flex h-10 w-10 items-center justify-center rounded-full transition-colors"
                    style="background-color: var(--elevated); color: var(--ink);"
                    onmouseover="this.style.backgroundColor='var(--elevated2)'"
                    onmouseout="this.style.backgroundColor='var(--elevated)'">
-                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
-                    Back to Chat
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
                 </a>
                 <h1 class="font-display text-lg font-extrabold tracking-tight ml-1">Edit Profile</h1>
             </header>
@@ -108,8 +120,8 @@
                     <section class="flex flex-col items-center gap-4">
                         <div class="relative">
                             <div id="avatarPreview"
-                                 class="flex h-24 w-24 items-center justify-center rounded-full text-3xl font-semibold select-none"
-                                 style="color: var(--ink);"></div>
+                                 class="flex h-24 w-24 items-center justify-center rounded-full text-3xl font-semibold select-none overflow-hidden"
+                                 style="background-color: var(--elevated); color: var(--ink); border: 2px solid var(--hairline);"></div>
                         </div>
 
                         <div class="relative">
