@@ -1,8 +1,8 @@
 /* ============================================================
  * 19-messages-io.js
- * Giao tiếp Supabase cho tin nhắn: load lịch sử, gửi tin (bao gồm E2EE encrypt/decrypt). Phụ thuộc: 02-04, 09, 12.
+ * Giao tiếp Supabase cho tin nhắn: load lịch sử, gửi tin (E2EE).
+ * Phụ thuộc: 02-04, 09, 12.
  * ============================================================ */
-/* ============ SUPABASE MESSAGES ============ */
 
 function hideAppLoading() {
     try {
@@ -46,11 +46,11 @@ async function loadMessagesFromSupabase() {
             const myId = await getMyUserId();
             const mySavedChatId = myId ? ("saved_" + myId) : ("saved_" + meLower);
             ensureSavedMessagesChat();
-            if (myId) {
-                try { await ensureSavedMessagesConversation(myId); } catch (_) {}
-            }
+            
+            // ✅ ĐÃ TỐI ƯU: Bỏ gọi ensureSavedMessagesConversation(myId) ở đây
+            // để tránh bắn request conversations trùng lặp khi vừa load app.
 
-            // 1) conversations của mình
+            // 1) Lấy conversations của mình (1 Query duy nhất)
             let convRows = [];
             if (myId) {
                 try {
@@ -86,7 +86,10 @@ async function loadMessagesFromSupabase() {
                         .select("id, username, avatar_type, avatar_color, avatar_emoji, avatar_url, is_verified")
                         .in("id", uniqueOtherIds);
                     (userRows || []).forEach((u) => {
-                        if (u && u.id) byId[u.id] = u;
+                        if (u && u.id) {
+                            byId[u.id] = u;
+                            userIdToName[u.id] = u.username;
+                        }
                     });
                     for (const c of convRows) {
                         if (!c || !c.id) continue;
@@ -99,7 +102,7 @@ async function loadMessagesFromSupabase() {
                 }
             }
 
-            // slots chat
+            // Slots chat
             for (const c of convRows) {
                 if (!c || !c.id) continue;
                 const otherId = convOtherId[c.id] || (c.user_1 === myId ? c.user_2 : c.user_1);
@@ -149,7 +152,6 @@ async function loadMessagesFromSupabase() {
                 else (previewData || []).forEach((m) => allPreviewRows.push(m));
             }
 
-            // Legacy chỉ khi chưa có UUID conv
             if (!convIds.length) {
                 const { data: legacyRows } = await window.supabaseClient
                     .from("messages")
@@ -247,8 +249,6 @@ async function loadMessagesFromSupabase() {
             }
 
             renderChatList();
-            // Không gọi refreshAllParticipantAvatars ở đây — đã lấy avatar trong query users
-            // Không load full chat khi chưa chọn (tránh request thêm)
         } catch (err) {
             console.error("[ZChat] loadMessagesFromSupabase exception:", err);
         } finally {
@@ -277,27 +277,23 @@ async function loadMessagesForChat(chatId) {
     _loadChatInflight[chatId] = (async () => {
     try {
         const me = currentUsername || localStorage.getItem("zchat_username") || "";
-        // Load toàn bộ tin của chat (phân trang lớn; thực tế 1-1 ít khi > vài nghìn)
-        const PAGE = 500;
+        
+        // ✅ ĐÃ TỐI ƯU: Giảm từ limit 500 xuống 50 tin gần nhất để giảm dung lượng file
+        const PAGE = 50;
         let offset = 0;
         let allRows = [];
-        for (;;) {
-            const { data, error } = await window.supabaseClient
-                .from("messages")
-                .select("id, chat_id, sender_id, content, created_at, read_at")
-                .eq("chat_id", chatId)
-                .order("created_at", { ascending: false })
-                .range(offset, offset + PAGE - 1);
-            if (error) {
-                console.error("[ZChat] loadMessagesForChat:", error);
-                break;
-            }
-            const batch = data || [];
-            allRows = allRows.concat(batch);
-            if (batch.length < PAGE) break;
-            offset += PAGE;
-            // an toàn: tối đa ~5000 tin / chat
-            if (offset >= 5000) break;
+        
+        const { data, error } = await window.supabaseClient
+            .from("messages")
+            .select("id, chat_id, sender_id, content, created_at, read_at")
+            .eq("chat_id", chatId)
+            .order("created_at", { ascending: false })
+            .range(0, PAGE - 1);
+
+        if (error) {
+            console.error("[ZChat] loadMessagesForChat:", error);
+        } else {
+            allRows = data || [];
         }
 
         const rows = allRows.slice().reverse();
@@ -368,10 +364,8 @@ async function postMessageToSupabase(msgObj, chatId) {
             }
         }
     } else if (isUuid(chatId)) {
-        // Đã là conversations.id
         realChatId = chatId;
     } else {
-        // Tạo / lấy conversation uuid từ 2 user
         const otherUser = (currentChat && currentChat.participant.name
                 ? currentChat.participant.name
                 : ""
@@ -398,7 +392,6 @@ async function postMessageToSupabase(msgObj, chatId) {
                 }
             }
         }
-        // Fallback legacy — vẫn không bao giờ dùng saved_ cho chat 1-1
         if (!isUuid(realChatId) && !String(realChatId).startsWith("saved_")) {
             const sortedUsers = [me.toLowerCase(), otherUser.toLowerCase()].sort();
             realChatId = `chat_${sortedUsers[0]}_${sortedUsers[1]}`;
