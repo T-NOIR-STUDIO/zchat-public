@@ -113,27 +113,34 @@ function renderChatList() {
         row.type = "button";
         row.className = "flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors";
         row.style.backgroundColor = active ? "var(--elevated)" : "transparent";
+        
+        // GIỮ NGUYÊN HOÀN TOÀN EVENT HOVER SÁNG CỦA Ô CHAT
         if (!active) {
             row.addEventListener("mouseenter", () => { row.style.backgroundColor = "var(--elevated)"; });
             row.addEventListener("mouseleave", () => { row.style.backgroundColor = "transparent"; });
         }
+        
         row.dataset.chatId = chat.id;
+        
+        // BỌC CON BẰNG pointer-events-none ĐỂ BỎ FLICKER DỨT ĐIỂM
         row.innerHTML = `
-        ${avatarHtml(chat.participant)}
-        <div class="min-w-0 flex-1">
-          <div class="flex items-center justify-between gap-2">
-            <span class="flex min-w-0 items-center gap-1.5 truncate">
-              ${pinIcon}
-              <span class="inline-flex min-w-0 items-center truncate text-[15px] font-bold" style="color: var(--ink);">${escapeHtml(chat.participant.name)}${getVerifiedBadge(!!chat.participant.isVerified)}</span>
-            </span>
-            ${last ? `<span class="shrink-0 text-xs font-medium" style="color: ${chat.unread > 0 ? "var(--ink)" : "var(--faint)"};">${formatListTimestamp(last.createdAt)}</span>` : ""}
-          </div>
-          <div class="mt-0.5 flex items-center justify-between gap-2">
-            <span class="flex min-w-0 items-center gap-1 truncate text-[13px]" style="color: var(--muted);">
-              ${receiptIcon}
-              <span class="truncate font-normal">${escapeHtml(previewText)}</span>
-            </span>
-            ${chat.unread > 0 ? `<span class="flex h-5 min-w-[20px] items-center justify-center rounded-pill px-1.5 text-[11px] font-bold" style="background-color: var(--ink); color: var(--canvas);">${chat.unread > 99 ? "99+" : chat.unread}</span>` : ""}
+        <div class="pointer-events-none flex w-full items-center gap-3">
+          ${avatarHtml(chat.participant)}
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center justify-between gap-2">
+              <span class="flex min-w-0 items-center gap-1.5 truncate">
+                ${pinIcon}
+                <span class="inline-flex min-w-0 items-center truncate text-[15px] font-bold" style="color: var(--ink);">${escapeHtml(chat.participant.name)}${getVerifiedBadge(!!chat.participant.isVerified)}</span>
+              </span>
+              ${last ? `<span class="shrink-0 text-xs font-medium" style="color: ${chat.unread > 0 ? "var(--ink)" : "var(--faint)"};">${formatListTimestamp(last.createdAt)}</span>` : ""}
+            </div>
+            <div class="mt-0.5 flex items-center justify-between gap-2">
+              <span class="flex min-w-0 items-center gap-1 truncate text-[13px]" style="color: var(--muted);">
+                ${receiptIcon}
+                <span class="truncate font-normal">${escapeHtml(previewText)}</span>
+              </span>
+              ${chat.unread > 0 ? `<span class="flex h-5 min-w-[20px] items-center justify-center rounded-pill px-1.5 text-[11px] font-bold" style="background-color: var(--ink); color: var(--canvas);">${chat.unread > 99 ? "99+" : chat.unread}</span>` : ""}
+            </div>
           </div>
         </div>`;
 
