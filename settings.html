@@ -240,8 +240,10 @@
                     </button>
                 </div>
 
-                <!-- App version -->
-                <p id="appVersionLabel" class="text-center pt-1 pb-6 select-none" style="font-size: 11px; color: var(--faint); letter-spacing: 0.02em;">
+                <!-- App version: pb đủ cao trên mobile để không bị bottom nav che -->
+                <p id="appVersionLabel"
+                   class="text-center select-none"
+                   style="font-size: 11px; color: var(--faint); letter-spacing: 0.02em; margin-top: 4px; padding-bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 72px));">
                     2.73.5-prod.01
                 </p>
 
