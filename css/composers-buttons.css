@@ -42,7 +42,7 @@
 
 /* Shell: emoji + send sát mép phải */
 #composerShell {
-    padding-right: 1px !important;
+    padding-right: 1.5px !important;
     gap: 2px !important;
 }
 
