@@ -30,7 +30,7 @@ function renderChatList() {
     chatListEmpty.classList.add("hidden");
     chatListEmpty.classList.remove("flex");
 
-    // Lấy danh sách DOM row hiện tại để tái sử dụng (chống flicker)
+    // Lấy Map các row đang có trong DOM
     const existingRows = new Map();
     Array.from(chatList.children).forEach((child) => {
         if (child.dataset && child.dataset.chatId) {
@@ -38,9 +38,7 @@ function renderChatList() {
         }
     });
 
-    const fragment = document.createDocumentFragment();
-
-    list.forEach((chat) => {
+    list.forEach((chat, index) => {
         const last = chat.messages[chat.messages.length - 1] || null;
         const isMine = last && last.senderId === "me";
         const lang = localStorage.getItem("zchat_lang") || "en";
@@ -91,11 +89,11 @@ function renderChatList() {
         let row = existingRows.get(chat.id);
 
         if (row) {
-            // Nếu có sẵn row thì chỉ update HTML khi nội dung có thay đổi
+            // Chỉ cập nhật HTML nếu thông tin tin nhắn thay đổi
             if (row.innerHTML !== innerHTMLContent) {
                 row.innerHTML = innerHTMLContent;
             }
-            // Giữ background nếu đang active hoặc chuột đang hover (chống chớp tắt)
+            // Giữ hiệu ứng hover/active không bị chớp
             const isHovered = row.matches(':hover');
             if (active || isHovered) {
                 row.style.backgroundColor = "var(--elevated)";
@@ -104,7 +102,7 @@ function renderChatList() {
             }
             existingRows.delete(chat.id);
         } else {
-            // Tạo mới row nếu chưa tồn tại
+            // Tạo row mới
             row = document.createElement("button");
             row.type = "button";
             row.className = `flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors select-none`;
@@ -116,10 +114,7 @@ function renderChatList() {
             row.dataset.chatId = chat.id;
             row.innerHTML = innerHTMLContent;
 
-            // Xử lý sự kiện click chuẩn xác (Không bị nuốt click khi spam)
-            row.addEventListener("click", (e) => {
-                selectChat(chat.id);
-            });
+            row.addEventListener("click", () => selectChat(chat.id));
 
             // Chuột phải (desktop)
             row.addEventListener("contextmenu", (e) => {
@@ -127,10 +122,9 @@ function renderChatList() {
                 openChatListMenu(chat, e.clientX, e.clientY);
             });
 
-            // Nhấn giữ (mobile) - Đã tối ưu flag tránh đè sự kiện click
+            // Nhấn giữ (mobile)
             let pressTimer = null;
             let longPressed = false;
-
             row.addEventListener("touchstart", (e) => {
                 longPressed = false;
                 const t = e.touches[0];
@@ -139,24 +133,23 @@ function renderChatList() {
                     openChatListMenu(chat, t.clientX, t.clientY);
                 }, 480);
             }, { passive: true });
-
             row.addEventListener("touchend", (e) => {
                 if (pressTimer) clearTimeout(pressTimer);
             });
-
             row.addEventListener("touchmove", () => {
                 if (pressTimer) clearTimeout(pressTimer);
             }, { passive: true });
         }
 
-        fragment.appendChild(row);
+        // GIỮ NGUYÊN ROW TRONG DOM: Đảm bảo vị trí hiển thị đúng mà không bao giờ reset DOM làm mất sự kiện Click
+        const targetChild = chatList.children[index];
+        if (targetChild !== row) {
+            chatList.insertBefore(row, targetChild || null);
+        }
     });
 
-    // Xóa các row không còn trong danh sách
+    // Xóa các row dư thừa không còn trong danh sách
     existingRows.forEach((oldRow) => oldRow.remove());
-
-    chatList.innerHTML = "";
-    chatList.appendChild(fragment);
 
     icons();
 }
@@ -174,18 +167,15 @@ function openSidebar() {
     if (!sidebarWrap) return;
     sidebarWrap.classList.remove("-translate-x-full");
     if (sidebarScrim) sidebarScrim.classList.add("hidden");
-    // Trên mobile, quay lại danh sách chat thì hiện lại bottom nav + trả lại khoảng chừa cho nó
     if (isMobileView() && bottomNav) {
         bottomNav.classList.remove("hidden");
         if (appShell) appShell.classList.add("pb-[60px]");
     }
 }
 function closeSidebar() {
-    // Chỉ ẩn list trên mobile khi vào chat; desktop luôn hiện list
     if (!sidebarWrap) return;
     if (isMobileView()) {
         sidebarWrap.classList.add("-translate-x-full");
-        // Ẩn bottom nav khi đang mở 1 chat trên mobile, đồng thời bỏ khoảng chừa pb-[60px] để không còn khe hở
         if (bottomNav) bottomNav.classList.add("hidden");
         if (appShell) appShell.classList.remove("pb-[60px]");
     } else {
@@ -197,7 +187,6 @@ if (openSidebarBtn) openSidebarBtn.addEventListener("click", openSidebar);
 if (closeSidebarBtn) closeSidebarBtn.addEventListener("click", closeSidebar);
 if (sidebarScrim) sidebarScrim.addEventListener("click", closeSidebar);
 
-// Đồng bộ lại trạng thái bottom nav khi resize qua lại giữa mobile/desktop
 window.addEventListener("resize", () => {
     if (!bottomNav) return;
     if (!isMobileView()) {
@@ -226,7 +215,6 @@ function selectChat(chatId) {
     markChatAsRead(chatId);
 }
 
-// Đánh dấu các tin nhắn của người kia trong đoạn chat này là đã xem (cho tính năng "Seen")
 async function markChatAsRead(chatId) {
     if (!window.supabaseClient || !chatId || chatId.startsWith("saved_")) return;
     const myId = myIdNow();
