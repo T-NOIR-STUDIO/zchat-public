@@ -76,7 +76,7 @@
     transform: scale(1);
     width: 36px !important;
     min-width: 36px !important;
-    margin-left: 2px !important;
+    margin-left: 4px !important;
     pointer-events: auto;
 }
 #sendBtn svg,
