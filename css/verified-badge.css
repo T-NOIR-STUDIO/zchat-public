@@ -18,7 +18,7 @@
     display: block !important;
     color: #1c9bf0 !important;
     position: relative !important;
-    top: 3;
+    top: -10 !important;
     margin: 0 !important;
     vertical-align: baseline;
 }
