@@ -30,6 +30,7 @@ function renderChatList() {
     chatListEmpty.classList.add("hidden");
     chatListEmpty.classList.remove("flex");
 
+    // Lưu lại danh sách thẻ HTML đang có trên màn hình
     const existingRows = new Map();
     Array.from(chatList.children).forEach((child) => {
         if (child.dataset && child.dataset.chatId) {
@@ -90,16 +91,26 @@ function renderChatList() {
         let row = existingRows.get(chat.id);
 
         if (row) {
+            // Tái sử dụng thẻ cũ: Chỉ thay đổi nội dung nếu tin nhắn thay đổi
             if (row.innerHTML !== innerHTMLContent) {
                 row.innerHTML = innerHTMLContent;
             }
-            row.style.backgroundColor = active ? "var(--elevated)" : "transparent";
+
+            // ĐIỂM SỬA CHÍNH: Nếu chuột đang nằm trên thẻ (hover), giữ nguyên màu elevated không cho bị reset
+            const isHovered = row.matches(':hover');
+            if (active || isHovered) {
+                row.style.backgroundColor = "var(--elevated)";
+            } else {
+                row.style.backgroundColor = "transparent";
+            }
             existingRows.delete(chat.id);
         } else {
+            // Tạo thẻ mới nếu chưa tồn tại
             row = document.createElement("button");
             row.type = "button";
             row.className = `flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors`;
             row.style.backgroundColor = active ? "var(--elevated)" : "transparent";
+            
             row.onmouseover = () => { if (chat.id !== state.activeChatId) row.style.backgroundColor = "var(--elevated)"; };
             row.onmouseout = () => { if (chat.id !== state.activeChatId) row.style.backgroundColor = "transparent"; };
 
@@ -134,8 +145,10 @@ function renderChatList() {
         fragment.appendChild(row);
     });
 
+    // Dọn các đoạn chat không còn tồn tại
     existingRows.forEach((oldRow) => oldRow.remove());
 
+    chatList.innerHTML = "";
     chatList.appendChild(fragment);
 
     icons();
