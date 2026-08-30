@@ -1,7 +1,3 @@
-/* ============================================================
- * 08-chat-list-render.js
- * Render danh sách chat (sidebar), chọn chat, đánh dấu đã đọc. Phụ thuộc: 02, 03, 04, 07.
- * ============================================================ */
 function getFilteredSortedChats() {
     const q = state.searchQuery.trim().toLowerCase();
     return state.chats
@@ -11,30 +7,34 @@ function getFilteredSortedChats() {
             const ap = isChatPinned(a.id) ? 1 : 0;
             const bp = isChatPinned(b.id) ? 1 : 0;
             if (ap !== bp) return bp - ap;
-            const at = a.messages.length ? a.messages[a.messages.length - 1].createdAt : 0;
-            const bt = b.messages.length ? b.messages[b.messages.length - 1].createdAt : 0;
+            const atLast = a.messages.length ? a.messages[a.messages.length - 1].createdAt : 0;
+            const btLast = b.messages.length ? b.messages[b.messages.length - 1].createdAt : 0;
+            const at = typeof atLast === "number" ? atLast : new Date(atLast).getTime() || 0;
+            const bt = typeof btLast === "number" ? btLast : new Date(btLast).getTime() || 0;
             return bt - at;
         });
 }
 
 function renderChatList() {
+    if (!chatList || !chatListEmpty) return;
     const list = getFilteredSortedChats();
     chatList.innerHTML = "";
 
     if (list.length === 0) {
         chatListEmpty.classList.remove("hidden");
         chatListEmpty.classList.add("flex");
-        icons();
+        if (typeof icons === "function") icons();
         return;
     }
     chatListEmpty.classList.add("hidden");
     chatListEmpty.classList.remove("flex");
 
+    const lang = localStorage.getItem("zchat_lang") || "en";
+    const dict = (typeof i18n !== "undefined" && i18n[lang]) ? i18n[lang] : {};
+
     list.forEach((chat) => {
         const last = chat.messages[chat.messages.length - 1] || null;
         const isMine = last && last.senderId === "me";
-        const lang = localStorage.getItem("zchat_lang") || "en";
-        const dict = (typeof i18n !== "undefined" && i18n[lang]) ? i18n[lang] : {};
         let previewText;
         if (!last) {
             previewText = dict.noMessagesYet || "No messages yet";
@@ -60,10 +60,9 @@ function renderChatList() {
 
         const row = document.createElement("button");
         row.type = "button";
-        row.className = `flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors`;
-        row.style.backgroundColor = active ? "var(--elevated)" : "transparent";
-        row.onmouseover = () => { if (!active) row.style.backgroundColor = "var(--elevated)"; };
-        row.onmouseout = () => { if (!active) row.style.backgroundColor = "transparent"; };
+        row.className = `flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors ${
+            active ? "bg-[var(--elevated)]" : "hover:bg-[var(--elevated)] bg-transparent"
+        }`;
 
         row.dataset.chatId = chat.id;
         row.innerHTML = `
@@ -86,12 +85,11 @@ function renderChatList() {
         </div>
       `;
         row.addEventListener("click", () => selectChat(chat.id));
-        // Chuột phải (desktop)
         row.addEventListener("contextmenu", (e) => {
             e.preventDefault();
             openChatListMenu(chat, e.clientX, e.clientY);
         });
-        // Nhấn giữ (mobile)
+
         let pressTimer = null;
         let longPressed = false;
         row.addEventListener("touchstart", (e) => {
@@ -113,13 +111,15 @@ function renderChatList() {
         chatList.appendChild(row);
     });
 
-    icons();
+    if (typeof icons === "function") icons();
 }
 
-searchInput.addEventListener("input", (e) => {
-    state.searchQuery = e.target.value;
-    renderChatList();
-});
+if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+        state.searchQuery = e.target.value;
+        renderChatList();
+    });
+}
 
 function isMobileView() {
     return window.matchMedia && window.matchMedia("(max-width: 767px)").matches;
@@ -129,18 +129,15 @@ function openSidebar() {
     if (!sidebarWrap) return;
     sidebarWrap.classList.remove("-translate-x-full");
     if (sidebarScrim) sidebarScrim.classList.add("hidden");
-    // Trên mobile, quay lại danh sách chat thì hiện lại bottom nav + trả lại khoảng chừa cho nó
     if (isMobileView() && bottomNav) {
         bottomNav.classList.remove("hidden");
         if (appShell) appShell.classList.add("pb-[60px]");
     }
 }
 function closeSidebar() {
-    // Chỉ ẩn list trên mobile khi vào chat; desktop luôn hiện list
     if (!sidebarWrap) return;
     if (isMobileView()) {
         sidebarWrap.classList.add("-translate-x-full");
-        // Ẩn bottom nav khi đang mở 1 chat trên mobile, đồng thời bỏ khoảng chừa pb-[60px] để không còn khe hở
         if (bottomNav) bottomNav.classList.add("hidden");
         if (appShell) appShell.classList.remove("pb-[60px]");
     } else {
@@ -152,7 +149,6 @@ if (openSidebarBtn) openSidebarBtn.addEventListener("click", openSidebar);
 if (closeSidebarBtn) closeSidebarBtn.addEventListener("click", closeSidebar);
 if (sidebarScrim) sidebarScrim.addEventListener("click", closeSidebar);
 
-// Đồng bộ lại trạng thái bottom nav khi resize qua lại giữa mobile/desktop
 window.addEventListener("resize", () => {
     if (!bottomNav) return;
     if (!isMobileView()) {
@@ -167,7 +163,7 @@ window.addEventListener("resize", () => {
     }
 });
 
-function selectChat(chatId) {
+async function selectChat(chatId) {
     state.activeChatId = chatId;
     const chat = state.chats.find((c) => c.id === chatId);
     if (chat) chat.unread = 0;
@@ -175,16 +171,17 @@ function selectChat(chatId) {
     closeInfoDrawer();
     closeSidebar();
     renderChatList();
-    renderActiveChat();
 
-    loadMessagesForChat(chatId);
+    if (typeof loadMessagesForChat === "function") {
+        await loadMessagesForChat(chatId);
+    }
+    renderActiveChat();
     markChatAsRead(chatId);
 }
 
-// Đánh dấu các tin nhắn của người kia trong đoạn chat này là đã xem (cho tính năng "Seen")
 async function markChatAsRead(chatId) {
     if (!window.supabaseClient || !chatId || chatId.startsWith("saved_")) return;
-    const myId = myIdNow();
+    const myId = typeof myIdNow === "function" ? myIdNow() : null;
     if (!myId) return;
     try {
         const { error } = await window.supabaseClient
@@ -207,6 +204,7 @@ function statusIconMarkup(status) {
 }
 
 function renderActiveChat() {
+    if (!emptyState || !activeChatEl) return;
     const chat = state.chats.find((c) => c.id === state.activeChatId);
 
     if (!chat) {
@@ -222,21 +220,23 @@ function renderActiveChat() {
     activeChatEl.classList.remove("hidden");
     activeChatEl.classList.add("flex");
 
-    chatHeaderAvatar.innerHTML = avatarHtml(chat.participant, 40);
+    if (chatHeaderAvatar) chatHeaderAvatar.innerHTML = avatarHtml(chat.participant, 40);
     const verifiedBadge = getVerifiedBadge(!!chat.participant.isVerified);
-    chatHeaderName.innerHTML = escapeHtml(chat.participant.name) + verifiedBadge;
-    chatHeaderStatus.textContent = "";
+    if (chatHeaderName) chatHeaderName.innerHTML = escapeHtml(chat.participant.name) + verifiedBadge;
+    if (chatHeaderStatus) chatHeaderStatus.textContent = "";
 
-    document.getElementById("infoAvatar").innerHTML = avatarHtml(chat.participant, 64);
+    const infoAvatarEl = document.getElementById("infoAvatar");
+    if (infoAvatarEl) infoAvatarEl.innerHTML = avatarHtml(chat.participant, 64);
     const infoNameEl = document.getElementById("infoName");
     if (infoNameEl) infoNameEl.innerHTML = escapeHtml(chat.participant.name) + verifiedBadge;
-    document.getElementById("infoUsername").textContent = "@" + chat.participant.name.toLowerCase().replace(/\s+/g, "");
+    const infoUsernameEl = document.getElementById("infoUsername");
+    if (infoUsernameEl) infoUsernameEl.textContent = "@" + chat.participant.name.toLowerCase().replace(/\s+/g, "");
 
-    updateDisappearingUI(chat.disappearingTime || "off");
-    blockScreenshotsToggle.checked = !!chat.blockScreenshots;
+    if (typeof updateDisappearingUI === "function") updateDisappearingUI(chat.disappearingTime || "off");
+    if (blockScreenshotsToggle) blockScreenshotsToggle.checked = !!chat.blockScreenshots;
 
-    applyScreenshotProtection(chat.blockScreenshots);
+    if (typeof applyScreenshotProtection === "function") applyScreenshotProtection(chat.blockScreenshots);
 
-    renderMessages(chat);
-    icons();
+    if (typeof renderMessages === "function") renderMessages(chat);
+    if (typeof icons === "function") icons();
 }
