@@ -12,9 +12,6 @@
     align-items: center;
     transform: translateZ(0);
     isolation: isolate;
-    align-items: flex-end !important;
-    padding-top: 4px;
-    padding-bottom: 4px;
 }
 
 #composerShell:focus,
