@@ -1,6 +1,6 @@
 /* ============================================================
  * 10-composer-shell-input.css
- * Composer: 1 dòng pill, nhiều dòng giãn cao + bo góc mềm (giống ChatGPT).
+ * Composer: 1 dòng / nhiều dòng giãn cao + bo góc mềm.
  * ============================================================ */
 
 #composerShell {
@@ -22,14 +22,17 @@
     overflow: hidden !important;
 }
 
-/* Nhiều dòng: chỉ tăng chiều cao, giữ bo góc */
+/*
+ * Nhiều dòng: giãn lên trên (padding-top).
+ * padding-bottom vừa phải — không tụt đáy quá thấp, Send vẫn neo flex-end.
+ */
 #composerShell.is-multiline {
     height: auto;
     min-height: 48px;
     max-height: min(42vh, 280px);
     align-items: flex-end;
-    padding-top: 10px;
-    padding-bottom: 10px;
+    padding-top: 12px;
+    padding-bottom: 6px;
 }
 
 #messageInput {
@@ -37,7 +40,7 @@
     width: 100%;
     height: 28px;
     min-height: 28px;
-    line-height: 28px; /* căn giữa chữ Message / 1 dòng */
+    line-height: 28px;
     padding: 0 !important;
     margin: 0;
     overflow-y: hidden;
@@ -80,4 +83,12 @@
     line-height: 1.45;
     min-height: 28px;
     height: auto;
+}
+
+/* Send neo đáy shell khi giãn */
+#composerShell.is-multiline #sendBtn {
+    align-self: flex-end !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    flex-shrink: 0;
 }
