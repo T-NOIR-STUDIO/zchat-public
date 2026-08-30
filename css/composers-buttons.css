@@ -24,10 +24,14 @@
     min-width: 36px !important;
     min-height: 36px !important;
     border-radius: 9999px !important;
+    margin-top: 0 !important;
     margin-bottom: 0 !important;
-    margin-left: 4px !important; /* nhích cả nút xanh sang phải */
+    margin-left: 4px !important;
     position: relative;
     left: 2px;
+    bottom: 0 !important;
+    align-self: flex-end !important;
+    flex-shrink: 0;
 }
 #sendBtn svg,
 #sendBtn i,
