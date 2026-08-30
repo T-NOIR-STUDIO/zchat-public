@@ -29,14 +29,7 @@ function showLoginView() {
     icons();
 }
 
-let _enterAppLoading = false;
 function enterApp(username) {
-    // Tránh bootstrap + login gọi chồng → 2 lần loadMessagesFromSupabase
-    if (_enterAppLoading && currentUsername === username) {
-        return;
-    }
-    _enterAppLoading = true;
-
     if (window.ZChatE2EE && username) {
         window.ZChatE2EE.ensureUserKeys(username).catch((e) => console.error("[E2EE] enterApp:", e));
     }
@@ -77,8 +70,11 @@ function enterApp(username) {
     applyLanguage();
     renderChatList();
 
-    Promise.resolve(loadMessagesFromSupabase())
-        .finally(() => { _enterAppLoading = false; });
+    // Safety: luôn tắt spinner dù load chậm / lỗi
+    setTimeout(() => { if (typeof hideAppLoading === "function") hideAppLoading(); }, 12000);
+    Promise.resolve(loadMessagesFromSupabase()).finally(() => {
+        if (typeof hideAppLoading === "function") hideAppLoading();
+    });
 
     renderActiveChat();
     icons();
