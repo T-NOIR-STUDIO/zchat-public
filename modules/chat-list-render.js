@@ -78,9 +78,9 @@ function bindChatRowGestures(row, chat) {
 
 function renderChatList() {
     const list = getFilteredSortedChats();
-    chatList.innerHTML = "";
 
     if (list.length === 0) {
+        chatList.innerHTML = "";
         chatListEmpty.classList.remove("hidden");
         chatListEmpty.classList.add("flex");
         icons();
@@ -92,6 +92,15 @@ function renderChatList() {
     const lang = localStorage.getItem("zchat_lang") || "en";
     const dict = (typeof i18n !== "undefined" && i18n[lang]) ? i18n[lang] : {};
     const pinned = new Set(typeof loadPinnedChatIds === "function" ? loadPinnedChatIds() : []);
+
+    // Lưu lại các element dòng chat hiện có trên DOM để tái sử dụng (tránh huỷ DOM làm mất hover state)
+    const existingRows = new Map();
+    Array.from(chatList.children).forEach((el) => {
+        if (el.dataset && el.dataset.chatId) {
+            existingRows.set(el.dataset.chatId, el);
+        }
+    });
+
     const frag = document.createDocumentFragment();
 
     for (let i = 0; i < list.length; i++) {
@@ -102,6 +111,17 @@ function renderChatList() {
         const isPinned = pinned.has(String(chat.id));
         const previewText = getChatPreviewText(chat, last, isMine, dict);
 
+        // NẾU ĐÃ CÓ TRÊN DOM: Tái sử dụng Element cũ để không bị flicker
+        if (existingRows.has(chat.id)) {
+            const row = existingRows.get(chat.id);
+            existingRows.delete(chat.id);
+
+            row.style.backgroundColor = active ? "var(--elevated)" : "transparent";
+            frag.appendChild(row);
+            continue;
+        }
+
+        // NẾU CHƯA CÓ TRÊN DOM: Tạo Element mới
         const receiptIcon = isMine && last
             ? `<i data-lucide="${last.status === "read" ? "check-check" : "check"}" class="w-[14px] h-[14px] shrink-0" style="color: var(--muted);"></i>`
             : "";
@@ -113,16 +133,13 @@ function renderChatList() {
         row.type = "button";
         row.className = "flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors";
         row.style.backgroundColor = active ? "var(--elevated)" : "transparent";
-        
-        // GIỮ NGUYÊN HOÀN TOÀN EVENT HOVER SÁNG CỦA Ô CHAT
+
         if (!active) {
             row.addEventListener("mouseenter", () => { row.style.backgroundColor = "var(--elevated)"; });
             row.addEventListener("mouseleave", () => { row.style.backgroundColor = "transparent"; });
         }
-        
+
         row.dataset.chatId = chat.id;
-        
-        // BỌC CON BẰNG pointer-events-none ĐỂ BỎ FLICKER DỨT ĐIỂM
         row.innerHTML = `
         <div class="pointer-events-none flex w-full items-center gap-3">
           ${avatarHtml(chat.participant)}
@@ -147,6 +164,9 @@ function renderChatList() {
         bindChatRowGestures(row, chat);
         frag.appendChild(row);
     }
+
+    // Xóa bớt các ô chat cũ không còn tồn tại trong list
+    existingRows.forEach((oldRow) => oldRow.remove());
 
     chatList.appendChild(frag);
     icons();
