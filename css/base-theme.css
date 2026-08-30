@@ -157,5 +157,5 @@ textarea { field-sizing: content; }
 #chatList .text-\[15px\],
 #chatHeaderName,
 #infoName {
-    font-weight: 500 !important;
+    font-weight: 600 !important;
 }
