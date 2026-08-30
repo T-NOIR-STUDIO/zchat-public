@@ -70,7 +70,6 @@ function renderChatList() {
         let row = existingRows.get(chat.id);
 
         if (row) {
-            // ĐIỂM SỬA CHÍNH: Cập nhật tinh gọn từng node nhỏ thay vì ghi đè innerHTML để không nuốt sự kiện Click
             const textEl = row.querySelector(".js-preview-text");
             if (textEl && textEl.textContent !== previewText) {
                 textEl.textContent = previewText;
@@ -107,7 +106,7 @@ function renderChatList() {
         } else {
             row = document.createElement("button");
             row.type = "button";
-            row.className = `flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors`;
+            row.className = `flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors select-none`;
             row.style.backgroundColor = active ? "var(--elevated)" : "transparent";
             
             row.onmouseover = () => { if (chat.id !== state.activeChatId) row.style.backgroundColor = "var(--elevated)"; };
@@ -134,29 +133,54 @@ function renderChatList() {
             </div>
           `;
 
-            row.addEventListener("click", () => selectChat(chat.id));
+            // XỬ LÝ EVENT CHUẨN XÁC: Tránh xung đột click/longpress
+            let pressTimer = null;
+            let isLongPress = false;
+
+            const startPress = (x, y) => {
+                isLongPress = false;
+                pressTimer = setTimeout(() => {
+                    isLongPress = true;
+                    openChatListMenu(chat, x, y);
+                }, 450);
+            };
+
+            const cancelPress = () => {
+                if (pressTimer) {
+                    clearTimeout(pressTimer);
+                    pressTimer = null;
+                }
+            };
+
+            // Touch events
+            row.addEventListener("touchstart", (e) => {
+                const t = e.touches[0];
+                startPress(t.clientX, t.clientY);
+            }, { passive: true });
+
+            row.addEventListener("touchmove", cancelPress, { passive: true });
+            
+            row.addEventListener("touchend", (e) => {
+                cancelPress();
+                if (isLongPress) {
+                    e.preventDefault();
+                }
+            });
+
+            // Mouse / Click event
             row.addEventListener("contextmenu", (e) => {
                 e.preventDefault();
                 openChatListMenu(chat, e.clientX, e.clientY);
             });
 
-            let pressTimer = null;
-            let longPressed = false;
-            row.addEventListener("touchstart", (e) => {
-                longPressed = false;
-                const t = e.touches[0];
-                pressTimer = setTimeout(() => {
-                    longPressed = true;
-                    openChatListMenu(chat, t.clientX, t.clientY);
-                }, 480);
-            }, { passive: true });
-            row.addEventListener("touchend", (e) => {
-                if (pressTimer) clearTimeout(pressTimer);
-                if (longPressed) e.preventDefault();
+            row.addEventListener("click", (e) => {
+                if (isLongPress) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
+                selectChat(chat.id);
             });
-            row.addEventListener("touchmove", () => {
-                if (pressTimer) clearTimeout(pressTimer);
-            }, { passive: true });
         }
 
         fragment.appendChild(row);
