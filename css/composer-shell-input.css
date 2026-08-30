@@ -1,6 +1,8 @@
 /* ============================================================
  * 10-composer-shell-input.css
+ * Composer: 1 dòng pill, nhiều dòng giãn cao + bo góc mềm (giống ChatGPT).
  * ============================================================ */
+
 #composerShell {
     height: 44px;
     min-height: 44px;
@@ -10,7 +12,6 @@
     align-items: center;
     transform: translateZ(0);
     isolation: isolate;
-    position: relative;
 }
 
 #composerShell:focus,
@@ -29,22 +30,6 @@
     align-items: flex-end;
     padding-top: 10px;
     padding-bottom: 10px;
-    /* chừa chỗ bên phải cho emoji + send (không đè chữ) */
-    padding-right: 76px !important;
-}
-
-/* Khoá cứng Send + emoji sát góc dưới-phải khi giãn */
-#composerShell.is-multiline #sendBtn {
-    position: absolute !important;
-    right: 6px !important;
-    bottom: 6px !important;
-    margin: 0 !important;
-}
-#composerShell.is-multiline #emojiBtn {
-    position: absolute !important;
-    right: 40px !important;
-    bottom: 6px !important;
-    margin: 0 !important;
 }
 
 #messageInput {
