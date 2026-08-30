@@ -3,46 +3,45 @@
  * O nhap tin nhan: gui tin, emoji picker, resize khung nhap. Phu thuoc: 02, 03, 04, 09, 19 (goi ham o file sau, hop le vi cung runtime).
  * ============================================================ */
 function updateSendBtnState() {
-    sendBtn.disabled = messageInput.value.trim().length === 0;
-}
-
-function lockComposerShellRadius() {
-    const shell = document.getElementById("composerShell");
-    if (!shell) return;
-    shell.style.borderRadius = "22px";
-    shell.style.overflow = "hidden";
+    if (!sendBtn || !messageInput) return;
+    const hasText = messageInput.value.trim().length > 0;
+    sendBtn.disabled = !hasText;
+    sendBtn.classList.toggle("is-visible", hasText);
+    sendBtn.setAttribute("aria-hidden", hasText ? "false" : "true");
 }
 
 function autoResizeMessageInput() {
     if (!messageInput) return;
     const shell = document.getElementById("composerShell");
-    const singleLineHeight = 28;
+    const singleLineHeight = 24;
     const viewportHeight = window.visualViewport?.height || window.innerHeight;
-    const maxHeight = Math.min(280, Math.max(96, Math.round(viewportHeight * 0.4)));
+    const maxHeight = Math.min(320, Math.max(96, Math.round(viewportHeight * 0.42)));
+    const saved = messageInput.value || "";
+    const hasNewline = /\n/.test(saved);
 
-    const hasNewline = /\n/.test(messageInput.value || "");
-
-    messageInput.style.height = "auto";
+    if (shell) shell.classList.remove("is-multiline");
     messageInput.style.maxHeight = "none";
     messageInput.style.overflowY = "hidden";
-    const contentHeight = messageInput.scrollHeight || singleLineHeight;
 
-    const isMultiline = hasNewline || contentHeight > singleLineHeight + 4;
+    // Baseline 1 dòng — 1 ký tự không còn bị giãn
+    messageInput.value = "M";
+    messageInput.style.height = "0px";
+    const oneLineScroll = messageInput.scrollHeight;
+    messageInput.value = saved;
+    messageInput.style.height = "0px";
+    const contentHeight = messageInput.scrollHeight;
 
-    if (shell) shell.classList.toggle("is-multiline", isMultiline);
-    lockComposerShellRadius();
+    const isMultiline = hasNewline || contentHeight > oneLineScroll + 2;
 
     if (!isMultiline) {
         messageInput.style.height = singleLineHeight + "px";
         messageInput.style.maxHeight = "";
-        messageInput.style.overflowY = "hidden";
         return;
     }
 
-    // Giãn cao theo nội dung, vẫn bo góc (CSS 22px)
-    const h = Math.min(Math.max(contentHeight, singleLineHeight), maxHeight);
+    if (shell) shell.classList.add("is-multiline");
     messageInput.style.maxHeight = maxHeight + "px";
-    messageInput.style.height = h + "px";
+    messageInput.style.height = Math.min(Math.max(contentHeight, singleLineHeight), maxHeight) + "px";
     messageInput.style.overflowY = contentHeight > maxHeight ? "auto" : "hidden";
 }
 
@@ -50,12 +49,6 @@ messageInput.addEventListener("input", () => {
     autoResizeMessageInput();
     updateSendBtnState();
 });
-
-messageInput.addEventListener("focus", () => {
-    lockComposerShellRadius();
-    autoResizeMessageInput();
-});
-messageInput.addEventListener("blur", lockComposerShellRadius);
 
 window.addEventListener("resize", autoResizeMessageInput);
 if (window.visualViewport) {
@@ -70,6 +63,7 @@ messageInput.addEventListener("keydown", (e) => {
 });
 
 sendBtn.addEventListener("click", handleSend);
+updateSendBtnState();
 
 async function handleSend() {
     const text = messageInput.value.trim();
