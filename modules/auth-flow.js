@@ -1,5 +1,6 @@
 /* ============================================================
  * 06-auth-flow.js
+ * Đăng ký/Đăng nhập UI, enterApp() - điểm vào chính sau khi có username. Phụ thuộc: 03, 04, 05.
  * ============================================================ */
 function generateRecoveryPassword() {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -28,7 +29,14 @@ function showLoginView() {
     icons();
 }
 
+let _enterAppLoading = false;
 function enterApp(username) {
+    // Tránh bootstrap + login gọi chồng → 2 lần loadMessagesFromSupabase
+    if (_enterAppLoading && currentUsername === username) {
+        return;
+    }
+    _enterAppLoading = true;
+
     if (window.ZChatE2EE && username) {
         window.ZChatE2EE.ensureUserKeys(username).catch((e) => console.error("[E2EE] enterApp:", e));
     }
@@ -36,6 +44,8 @@ function enterApp(username) {
     currentUsername = username;
     localStorage.setItem("zchat_username", username);
 
+    // Passcode: chưa unlock / hết 50h → recovery.html (Create hoặc Enter)
+    // recovery.js tự phân nhánh Create nếu chưa có trên server
     try {
         const TTL_MS = 50 * 60 * 60 * 1000;
         const unlockedAt = parseInt(localStorage.getItem("zchat_passcode_unlocked_at") || "0", 10) || 0;
@@ -62,11 +72,13 @@ function enterApp(username) {
     }
 
     syncProfileData();
+    // Đồng bộ avatar từ tài khoản (Supabase) — mọi thiết bị / trình duyệt cùng 1 ảnh
     syncMyAvatarFromServer(username);
     applyLanguage();
     renderChatList();
 
-    loadMessagesFromSupabase();
+    Promise.resolve(loadMessagesFromSupabase())
+        .finally(() => { _enterAppLoading = false; });
 
     renderActiveChat();
     icons();
