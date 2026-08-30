@@ -30,7 +30,6 @@ function renderChatList() {
     chatListEmpty.classList.add("hidden");
     chatListEmpty.classList.remove("flex");
 
-    // Lưu lại danh sách thẻ HTML đang có trên màn hình
     const existingRows = new Map();
     Array.from(chatList.children).forEach((child) => {
         if (child.dataset && child.dataset.chatId) {
@@ -68,35 +67,36 @@ function renderChatList() {
             ? `<i data-lucide="pin" class="w-[12px] h-[12px] shrink-0" style="color: var(--faint);"></i>`
             : "";
 
-        const innerHTMLContent = `
-        ${avatarHtml(chat.participant)}
-        <div class="min-w-0 flex-1">
-          <div class="flex items-center justify-between gap-2">
-            <span class="flex min-w-0 items-center gap-1.5 truncate">
-              ${pinIcon}
-              <span class="inline-flex min-w-0 items-center truncate text-[15px] font-bold" style="color: var(--ink);">${escapeHtml(chat.participant.name)}${getVerifiedBadge(!!chat.participant.isVerified)}</span>
-            </span>
-            ${last ? `<span class="shrink-0 text-xs font-medium" style="color: ${chat.unread > 0 ? "var(--ink)" : "var(--faint)"};">${formatListTimestamp(last.createdAt)}</span>` : ""}
-          </div>
-          <div class="mt-0.5 flex items-center justify-between gap-2">
-            <span class="flex min-w-0 items-center gap-1 truncate text-[13px]" style="color: var(--muted);">
-              ${receiptIcon}
-              <span class="truncate font-normal">${escapeHtml(previewText)}</span>
-            </span>
-            ${chat.unread > 0 ? `<span class="flex h-5 min-w-[20px] items-center justify-center rounded-pill px-1.5 text-[11px] font-bold" style="background-color: var(--ink); color: var(--canvas);">${chat.unread > 99 ? "99+" : chat.unread}</span>` : ""}
-          </div>
-        </div>
-      `;
-
         let row = existingRows.get(chat.id);
 
         if (row) {
-            // Tái sử dụng thẻ cũ: Chỉ thay đổi nội dung nếu tin nhắn thay đổi
-            if (row.innerHTML !== innerHTMLContent) {
-                row.innerHTML = innerHTMLContent;
+            // ĐIỂM SỬA CHÍNH: Cập nhật tinh gọn từng node nhỏ thay vì ghi đè innerHTML để không nuốt sự kiện Click
+            const textEl = row.querySelector(".js-preview-text");
+            if (textEl && textEl.textContent !== previewText) {
+                textEl.textContent = previewText;
             }
 
-            // ĐIỂM SỬA CHÍNH: Nếu chuột đang nằm trên thẻ (hover), giữ nguyên màu elevated không cho bị reset
+            const timeEl = row.querySelector(".js-chat-time");
+            if (timeEl && last) {
+                const timeStr = formatListTimestamp(last.createdAt);
+                if (timeEl.textContent !== timeStr) timeEl.textContent = timeStr;
+            }
+
+            const unreadEl = row.querySelector(".js-unread-badge");
+            if (chat.unread > 0) {
+                const unreadStr = chat.unread > 99 ? "99+" : chat.unread;
+                if (!unreadEl) {
+                    const badgeWrap = row.querySelector(".js-bottom-row");
+                    if (badgeWrap) {
+                        badgeWrap.insertAdjacentHTML('beforeend', `<span class="js-unread-badge flex h-5 min-w-[20px] items-center justify-center rounded-pill px-1.5 text-[11px] font-bold" style="background-color: var(--ink); color: var(--canvas);">${unreadStr}</span>`);
+                    }
+                } else if (unreadEl.textContent !== String(unreadStr)) {
+                    unreadEl.textContent = unreadStr;
+                }
+            } else if (unreadEl) {
+                unreadEl.remove();
+            }
+
             const isHovered = row.matches(':hover');
             if (active || isHovered) {
                 row.style.backgroundColor = "var(--elevated)";
@@ -105,7 +105,6 @@ function renderChatList() {
             }
             existingRows.delete(chat.id);
         } else {
-            // Tạo thẻ mới nếu chưa tồn tại
             row = document.createElement("button");
             row.type = "button";
             row.className = `flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors`;
@@ -115,7 +114,25 @@ function renderChatList() {
             row.onmouseout = () => { if (chat.id !== state.activeChatId) row.style.backgroundColor = "transparent"; };
 
             row.dataset.chatId = chat.id;
-            row.innerHTML = innerHTMLContent;
+            row.innerHTML = `
+            ${avatarHtml(chat.participant)}
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between gap-2">
+                <span class="flex min-w-0 items-center gap-1.5 truncate">
+                  ${pinIcon}
+                  <span class="inline-flex min-w-0 items-center truncate text-[15px] font-bold" style="color: var(--ink);">${escapeHtml(chat.participant.name)}${getVerifiedBadge(!!chat.participant.isVerified)}</span>
+                </span>
+                ${last ? `<span class="js-chat-time shrink-0 text-xs font-medium" style="color: ${chat.unread > 0 ? "var(--ink)" : "var(--faint)"};">${formatListTimestamp(last.createdAt)}</span>` : ""}
+              </div>
+              <div class="js-bottom-row mt-0.5 flex items-center justify-between gap-2">
+                <span class="flex min-w-0 items-center gap-1 truncate text-[13px]" style="color: var(--muted);">
+                  ${receiptIcon}
+                  <span class="js-preview-text truncate font-normal">${escapeHtml(previewText)}</span>
+                </span>
+                ${chat.unread > 0 ? `<span class="js-unread-badge flex h-5 min-w-[20px] items-center justify-center rounded-pill px-1.5 text-[11px] font-bold" style="background-color: var(--ink); color: var(--canvas);">${chat.unread > 99 ? "99+" : chat.unread}</span>` : ""}
+              </div>
+            </div>
+          `;
 
             row.addEventListener("click", () => selectChat(chat.id));
             row.addEventListener("contextmenu", (e) => {
@@ -145,7 +162,6 @@ function renderChatList() {
         fragment.appendChild(row);
     });
 
-    // Dọn các đoạn chat không còn tồn tại
     existingRows.forEach((oldRow) => oldRow.remove());
 
     chatList.innerHTML = "";
