@@ -194,76 +194,38 @@ async function resolveOtherNameFromConversationId(convId, meId) {
    giữa tên hiển thị trong chat và username thật lưu trong bảng users. */
 async function refreshAllParticipantAvatars() {
     if (!window.supabaseClient) return;
-
-    // Ưu tiên bulk theo userId (1 query) — tránh N+1 fetchAvatarForUsername
-    const ids = [...new Set(
+    const names = [...new Set(
         state.chats
-            .map((c) => c.participant && c.participant.userId)
-            .filter(Boolean)
+            .map((c) => c.participant && c.participant.name)
+            .filter((n) => n && n !== "Saved Messages" && n !== "Chat User" && !(c && false))
+            .filter((n) => {
+                const chat = state.chats.find((c) => c.participant && c.participant.name === n);
+                return !(chat && chat.participant && chat.participant.isSelfNotes);
+            })
     )];
-    const namesNeed = [...new Set(
-        state.chats
-            .filter((c) => c.participant && c.participant.name && !c.participant.userId && !c.participant.isSelfNotes)
-            .map((c) => c.participant.name)
-            .filter((n) => n && n !== "Saved Messages" && n !== "Chat User")
-    )];
-    if (!ids.length && !namesNeed.length) return;
+    if (!names.length) return;
 
     try {
-        const byId = Object.create(null);
+        // 1 request thay vì N fetchAvatarForUsername
+        const { data: userRows, error } = await window.supabaseClient
+            .from("users")
+            .select("id, username, avatar_type, avatar_color, avatar_emoji, avatar_url, is_verified")
+            .in("username", names);
+        if (error) {
+            console.warn("[ZChat] refreshAllParticipantAvatars:", error.message || error);
+            return;
+        }
         const byName = Object.create(null);
-
-        if (ids.length) {
-            const CHUNK = 80;
-            for (let i = 0; i < ids.length; i += CHUNK) {
-                const slice = ids.slice(i, i + CHUNK);
-                const { data } = await window.supabaseClient
-                    .from("users")
-                    .select("id, username, avatar_type, avatar_color, avatar_emoji, avatar_url, is_verified")
-                    .in("id", slice);
-                (data || []).forEach((u) => {
-                    if (!u || !u.id) return;
-                    byId[u.id] = u;
-                    if (u.username) {
-                        byName[u.username.toLowerCase()] = u;
-                        userIdToName[u.id] = u.username;
-                    }
-                });
-            }
-        }
-
-        // Chỉ query theo tên khi thiếu userId (vẫn batch, không N lần)
-        if (namesNeed.length) {
-            const CHUNK = 30;
-            for (let i = 0; i < namesNeed.length; i += CHUNK) {
-                const slice = namesNeed.slice(i, i + CHUNK);
-                // or(username.ilike.a,username.ilike.b,...) — 1 request / chunk
-                const orFilter = slice.map((n) => `username.ilike.${n}`).join(",");
-                const { data } = await window.supabaseClient
-                    .from("users")
-                    .select("id, username, avatar_type, avatar_color, avatar_emoji, avatar_url, is_verified")
-                    .or(orFilter);
-                (data || []).forEach((u) => {
-                    if (!u) return;
-                    if (u.id) byId[u.id] = u;
-                    if (u.username) {
-                        byName[u.username.toLowerCase()] = u;
-                        if (u.id) userIdToName[u.id] = u.username;
-                    }
-                });
-            }
-        }
+        (userRows || []).forEach((u) => {
+            if (u && u.username) byName[u.username.toLowerCase()] = u;
+        });
 
         let changed = false;
         state.chats.forEach((c) => {
-            if (!c.participant || c.participant.isSelfNotes) return;
-            const row =
-                (c.participant.userId && byId[c.participant.userId]) ||
-                (c.participant.name && byName[String(c.participant.name).toLowerCase()]) ||
-                null;
+            if (!c.participant || !c.participant.name) return;
+            const row = byName[c.participant.name.toLowerCase()];
             if (row) {
                 applyAvatarFields(c.participant, row);
-                if (row.id) c.participant.userId = row.id;
                 changed = true;
             }
         });
@@ -368,6 +330,20 @@ function ensureSavedMessagesChat() {
     p.avatarColor = localStorage.getItem("zchat_avatar_color") || p.avatarColor || null;
     p.avatarEmoji = localStorage.getItem("zchat_avatar_emoji") || p.avatarEmoji || null;
     p.avatarUrl = localStorage.getItem("zchat_avatar_url") || p.avatarUrl || null;
+
+    // Tick xanh trên chat tự nhắn: lấy is_verified từ server (không đổi tên)
+    if (displayName && typeof fetchAvatarForUsername === "function") {
+        fetchAvatarForUsername(displayName).then((row) => {
+            if (!row || !savedChat || !savedChat.participant) return;
+            applyAvatarFields(savedChat.participant, row);
+            savedChat.participant.isSelfNotes = true;
+            savedChat.participant.name = displayName;
+            if (typeof renderChatList === "function") renderChatList();
+            if (state.activeChatId === savedChat.id && typeof renderActiveChat === "function") {
+                renderActiveChat();
+            }
+        }).catch(() => {});
+    }
 
     if (!state.activeChatId) state.activeChatId = savedChatId;
     return savedChatId;
