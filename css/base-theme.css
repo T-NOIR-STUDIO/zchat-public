@@ -154,3 +154,8 @@ textarea { field-sizing: content; }
         pointer-events: auto;
     }
 }
+#chatList .text-\[15px\],
+#chatHeaderName,
+#infoName {
+    font-weight: 500 !important;
+}
