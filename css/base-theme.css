@@ -2,20 +2,24 @@
  * 01-base-theme.css
  * Font chữ, reset html/body, biến CSS theme sáng/tối (--canvas, --ink, --hairline...), scrollbar mỏng, focus-visible, animation dùng chung (typing-dot, fade-in). LOAD ĐẦU TIÊN — mọi file khác đều dùng biến theme khai báo ở đây.
  * ============================================================ */
-/* Instrument Sans — bubble text + user names */
-@import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap");
 
 #messageFeed .rounded-bubble,
 #messageFeed .msg-reply-quote,
-#messageFeed .msg-reply-image-name,
 #messageFeed .msg-reply-preview,
+#messageFeed .msg-bubble-pressable {
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-weight: 400 !important;
+}
 .verified-name,
 #activeChat header .verified-name,
 #activeChat header h1,
 #activeChat header h2,
 #chatList .font-semibold,
-#chatList .font-medium {
-    font-family: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+#chatList .font-medium,
+#chatHeaderName,
+#infoName {
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 /*index.html*/
 html, body { height: 100%; }
