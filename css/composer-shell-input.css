@@ -27,14 +27,9 @@
     height: auto;
     min-height: 48px;
     max-height: min(42vh, 280px);
-    align-items: flex-end !important;
+    align-items: flex-end;
     padding-top: 10px;
     padding-bottom: 10px;
-}
-
-/* Chỉ khóa send (+ emoji) neo dưới — không đổi layout khác */
-#composerShell #sendBtn {
-    align-self: flex-end !important;
 }
 
 #messageInput {
