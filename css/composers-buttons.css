@@ -2,7 +2,6 @@
  * 05-composer-buttons.css
  * Attach / Emoji / Send
  * ============================================================ */
-
 #attachBtn {
     width: 44px !important;
     height: 44px !important;
@@ -18,8 +17,6 @@
     stroke-linecap: square !important;
     stroke-linejoin: miter !important;
 }
-
-/* Emoji: to hơn, sát mép ngoài (phải) text box */
 #emojiBtn {
     width: 36px !important;
     height: 36px !important;
@@ -39,14 +36,10 @@
     height: 22px !important;
     stroke-width: 2 !important;
 }
-
-/* Shell: emoji + send sát mép phải */
 #composerShell {
     padding-right: 2px !important;
     gap: 2px !important;
 }
-
-/* Send: ẩn khi trống, hiện mượt khi có chữ */
 #sendBtn {
     width: 0 !important;
     min-width: 0 !important;
@@ -76,7 +69,7 @@
     transform: scale(1);
     width: 36px !important;
     min-width: 36px !important;
-    margin-left: 4px !important;
+    margin-left: 5px !important;
     pointer-events: auto;
 }
 #sendBtn svg,
