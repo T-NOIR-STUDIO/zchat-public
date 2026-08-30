@@ -45,8 +45,8 @@
 }
 #emojiBtn svg,
 #emojiBtn i {
-    width: 22px !important;
-    height: 22px !important;
+    width: 21px !important;
+    height: 21px !important;
     stroke-width: 2 !important;
     flex-shrink: 0;
 }
