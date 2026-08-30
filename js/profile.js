@@ -109,8 +109,8 @@
         const lang = localStorage.getItem("zchat_lang") || "en";
         const dict = i18n[lang] || i18n.en;
 
-        const backBtn = document.querySelector("header a");
-        if (backBtn) backBtn.childNodes[2].textContent = " " + dict.backToChat;
+        const backBtn = document.getElementById("backToChatBtn") || document.querySelector("header a");
+        if (backBtn) backBtn.setAttribute("aria-label", dict.backToChat || "Back");
 
         const headerTitle = document.querySelector("header h1");
         if (headerTitle) headerTitle.textContent = dict.editProfile;
@@ -158,6 +158,10 @@
     window.addEventListener("storage", (e) => {
         if (e.key === "zchat_lang") {
             applyLanguage();
+        }
+        if (e.key === "zchat_theme") {
+            draft.theme = e.newValue === "light" ? "light" : "dark";
+            renderTheme();
         }
     });
 
@@ -342,10 +346,17 @@
     }
 
     function renderTheme() {
-        const theme = draft.theme === "light" ? "light" : "dark";
+        // Đồng bộ với Settings: luôn ưu tiên localStorage zchat_theme
+        let theme = localStorage.getItem("zchat_theme") || draft.theme || "dark";
+        if (theme !== "light" && theme !== "dark") theme = "dark";
         draft.theme = theme;
         document.documentElement.setAttribute("data-theme", theme);
         if (document.body) document.body.setAttribute("data-theme", theme);
+        document.documentElement.style.backgroundColor = theme === "light" ? "#FFFFFF" : "#000000";
+        if (document.body) {
+            document.body.style.backgroundColor = "var(--canvas)";
+            document.body.style.color = "var(--ink)";
+        }
         const isLight = theme === "light";
         const lang = localStorage.getItem("zchat_lang") || "en";
         const dict = i18n[lang] || i18n.en;
@@ -580,9 +591,12 @@
     if (themeSwitch) {
         themeSwitch.addEventListener("click", () => {
             draft.theme = draft.theme === "light" ? "dark" : "light";
+            try { localStorage.setItem("zchat_theme", draft.theme); } catch (_) {}
             renderTheme();
         });
     }
+    // Áp theme settings ngay khi vào trang
+    renderTheme();
 
     let toastTimeout = null;
     function showToast(message) {
