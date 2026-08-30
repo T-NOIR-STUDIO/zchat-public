@@ -1,20 +1,9 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full" data-theme="dark">
-<script>
-/* Apply theme from settings (localStorage) BEFORE paint — avoid white flash on mobile */
-(function () {
-  try {
-    var th = localStorage.getItem("zchat_theme") || "dark";
-    if (th !== "light" && th !== "dark") th = "dark";
-    document.documentElement.setAttribute("data-theme", th);
-    document.documentElement.style.backgroundColor = th === "light" ? "#FFFFFF" : "#000000";
-  } catch (e) {}
-})();
-</script>
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Profile — ZChat</title>
+    <title>Profile / ZChat</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,7 +11,6 @@
     <link rel="icon" href="/assets/img/favicon-32.png" type="image/png" sizes="any" />
     <link rel="icon" href="/assets/img/favicon-16.png" type="image/png" sizes="any" />
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/img/apple-touch-icon.png" />
-    <link rel="stylesheet" href="css/base-theme.css">
     <link rel="stylesheet" href="css/tailwind.min.css">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
@@ -36,6 +24,13 @@
         }
 
         #presenceDotPreview { display: none !important; }
+        #usernameField,
+        #usernameField:focus,
+        #usernameField:focus-visible {
+            border-radius: 1rem !important;
+            outline: none !important;
+            box-shadow: none !important;
+        }
         #avatarPopover { min-width: 22rem; }
         #avatarPopover .color-swatch { width: 2.5rem !important; height: 2.5rem !important; }
         #avatarPopover .emoji-swatch { font-size: 1.35rem !important; padding: 0.45rem !important; }
@@ -43,7 +38,7 @@
     </style>
 </head>
 
-<body class="h-full font-body overflow-hidden" style="background-color: var(--canvas, #000); color: var(--ink, #fff);">
+<body class="h-full font-body overflow-hidden" style="background-color: var(--canvas); color: var(--ink);">
 
 <div class="flex flex-col sm:flex-row h-screen w-full overflow-hidden pb-[60px] sm:pb-0" style="background-color: var(--canvas);">
     <nav id="bottomNav"
@@ -155,7 +150,7 @@
                         <label for="usernameField" class="text-sm font-semibold">Username</label>
                         <input id="usernameField" type="text" maxlength="24"
                                class="w-full rounded-2xl px-4 py-3 text-sm focus:outline-none"
-                               style="background-color: var(--elevated); color: var(--ink);" />
+                               style="background-color: var(--elevated); color: var(--ink); border-radius: 1rem;" />
                         <p id="usernamePreview" class="text-xs" style="color: var(--faint);"></p>
                         <p id="usernameError" class="hidden text-xs" style="color: var(--dnd);">Username can't be empty.</p>
                     </section>
