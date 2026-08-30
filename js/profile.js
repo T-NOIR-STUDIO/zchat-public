@@ -159,10 +159,6 @@
         if (e.key === "zchat_lang") {
             applyLanguage();
         }
-        if (e.key === "zchat_theme") {
-            draft.theme = e.newValue === "light" ? "light" : "dark";
-            renderTheme();
-        }
     });
 
     const AVATAR_COLORS = ["#3B3B3B", "#333333", "#2E2E2E", "#363636", "#303030", "#3A3A3A", "#7F96FF", "#5170FF", "#31D07C", "#F5A623", "#EF4444", "#8C6CF0"];
@@ -346,17 +342,10 @@
     }
 
     function renderTheme() {
-        // Đồng bộ với Settings: luôn ưu tiên localStorage zchat_theme
-        let theme = localStorage.getItem("zchat_theme") || draft.theme || "dark";
-        if (theme !== "light" && theme !== "dark") theme = "dark";
+        const theme = draft.theme === "light" ? "light" : "dark";
         draft.theme = theme;
         document.documentElement.setAttribute("data-theme", theme);
         if (document.body) document.body.setAttribute("data-theme", theme);
-        document.documentElement.style.backgroundColor = theme === "light" ? "#FFFFFF" : "#000000";
-        if (document.body) {
-            document.body.style.backgroundColor = "var(--canvas)";
-            document.body.style.color = "var(--ink)";
-        }
         const isLight = theme === "light";
         const lang = localStorage.getItem("zchat_lang") || "en";
         const dict = i18n[lang] || i18n.en;
@@ -451,26 +440,42 @@
         }
     });
 
-    document.querySelectorAll(".avatar-tab").forEach((tab) => {
-        tab.addEventListener("click", () => {
-            document.querySelectorAll(".avatar-tab").forEach((t) => {
-                t.style.backgroundColor = "transparent";
-                t.style.color = "var(--muted)";
-            });
-            tab.style.backgroundColor = "var(--ink)";
-            tab.style.color = "var(--bubble-sent-text)";
-            const isColor = tab.dataset.avatarTab === "color";
-            const isEmoji = tab.dataset.avatarTab === "emoji";
-            const isPhoto = tab.dataset.avatarTab === "photo";
-            colorSwatches.classList.toggle("hidden", !isColor);
-            emojiSwatches.classList.toggle("hidden", !isEmoji);
-            if (photoPanel) {
-                photoPanel.classList.toggle("hidden", !isPhoto);
-                photoPanel.classList.toggle("flex", isPhoto);
-            }
+    function activateAvatarTab(tab) {
+        if (!tab) return;
+        document.querySelectorAll(".avatar-tab").forEach((t) => {
+            t.classList.remove("is-active");
+            t.style.backgroundColor = "";
+            t.style.color = "";
         });
+        tab.classList.add("is-active");
+        // Màu rõ ràng — không dùng bubble-sent-text (gây trắng bốc)
+        tab.style.backgroundColor = "#1c9bf0";
+        tab.style.color = "#ffffff";
+        const isColor = tab.dataset.avatarTab === "color";
+        const isEmoji = tab.dataset.avatarTab === "emoji";
+        const isPhoto = tab.dataset.avatarTab === "photo";
+        if (colorSwatches) {
+            colorSwatches.classList.toggle("hidden", !isColor);
+            colorSwatches.style.backgroundColor = "transparent";
+        }
+        if (emojiSwatches) {
+            emojiSwatches.classList.toggle("hidden", !isEmoji);
+            emojiSwatches.style.backgroundColor = "transparent";
+        }
+        if (photoPanel) {
+            photoPanel.classList.toggle("hidden", !isPhoto);
+            photoPanel.classList.toggle("flex", isPhoto);
+            photoPanel.style.backgroundColor = "transparent";
+        }
+    }
+    document.querySelectorAll(".avatar-tab").forEach((tab) => {
+        tab.addEventListener("click", () => activateAvatarTab(tab));
     });
-    document.querySelector('.avatar-tab[data-avatar-tab="' + (saved.avatarType === "photo" ? "photo" : saved.avatarType === "emoji" ? "emoji" : "color") + '"]').click();
+    {
+        const key = saved.avatarType === "photo" ? "photo" : saved.avatarType === "emoji" ? "emoji" : "color";
+        const initial = document.querySelector('.avatar-tab[data-avatar-tab="' + key + '"]');
+        activateAvatarTab(initial);
+    }
 
     /* ============ AVATAR PHOTO UPLOAD (Supabase Storage: bucket "avatars") ============ */
     const MAX_AVATAR_BYTES = 5 * 1024 * 1024; // 5MB
@@ -591,12 +596,9 @@
     if (themeSwitch) {
         themeSwitch.addEventListener("click", () => {
             draft.theme = draft.theme === "light" ? "dark" : "light";
-            try { localStorage.setItem("zchat_theme", draft.theme); } catch (_) {}
             renderTheme();
         });
     }
-    // Áp theme settings ngay khi vào trang
-    renderTheme();
 
     let toastTimeout = null;
     function showToast(message) {
