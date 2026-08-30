@@ -30,6 +30,7 @@ function renderChatList() {
     chatListEmpty.classList.add("hidden");
     chatListEmpty.classList.remove("flex");
 
+    // Lấy danh sách DOM row hiện tại để tái sử dụng (chống flicker)
     const existingRows = new Map();
     Array.from(chatList.children).forEach((child) => {
         if (child.dataset && child.dataset.chatId) {
@@ -67,35 +68,34 @@ function renderChatList() {
             ? `<i data-lucide="pin" class="w-[12px] h-[12px] shrink-0" style="color: var(--faint);"></i>`
             : "";
 
+        const innerHTMLContent = `
+        ${avatarHtml(chat.participant)}
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center justify-between gap-2">
+            <span class="flex min-w-0 items-center gap-1.5 truncate">
+              ${pinIcon}
+              <span class="inline-flex min-w-0 items-center truncate text-[15px] font-bold" style="color: var(--ink);">${escapeHtml(chat.participant.name)}${getVerifiedBadge(!!chat.participant.isVerified)}</span>
+            </span>
+            ${last ? `<span class="shrink-0 text-xs font-medium" style="color: ${chat.unread > 0 ? "var(--ink)" : "var(--faint)"};">${formatListTimestamp(last.createdAt)}</span>` : ""}
+          </div>
+          <div class="mt-0.5 flex items-center justify-between gap-2">
+            <span class="flex min-w-0 items-center gap-1 truncate text-[13px]" style="color: var(--muted);">
+              ${receiptIcon}
+              <span class="truncate font-normal">${escapeHtml(previewText)}</span>
+            </span>
+            ${chat.unread > 0 ? `<span class="flex h-5 min-w-[20px] items-center justify-center rounded-pill px-1.5 text-[11px] font-bold" style="background-color: var(--ink); color: var(--canvas);">${chat.unread > 99 ? "99+" : chat.unread}</span>` : ""}
+          </div>
+        </div>
+      `;
+
         let row = existingRows.get(chat.id);
 
         if (row) {
-            const textEl = row.querySelector(".js-preview-text");
-            if (textEl && textEl.textContent !== previewText) {
-                textEl.textContent = previewText;
+            // Nếu có sẵn row thì chỉ update HTML khi nội dung có thay đổi
+            if (row.innerHTML !== innerHTMLContent) {
+                row.innerHTML = innerHTMLContent;
             }
-
-            const timeEl = row.querySelector(".js-chat-time");
-            if (timeEl && last) {
-                const timeStr = formatListTimestamp(last.createdAt);
-                if (timeEl.textContent !== timeStr) timeEl.textContent = timeStr;
-            }
-
-            const unreadEl = row.querySelector(".js-unread-badge");
-            if (chat.unread > 0) {
-                const unreadStr = chat.unread > 99 ? "99+" : chat.unread;
-                if (!unreadEl) {
-                    const badgeWrap = row.querySelector(".js-bottom-row");
-                    if (badgeWrap) {
-                        badgeWrap.insertAdjacentHTML('beforeend', `<span class="js-unread-badge flex h-5 min-w-[20px] items-center justify-center rounded-pill px-1.5 text-[11px] font-bold" style="background-color: var(--ink); color: var(--canvas);">${unreadStr}</span>`);
-                    }
-                } else if (unreadEl.textContent !== String(unreadStr)) {
-                    unreadEl.textContent = unreadStr;
-                }
-            } else if (unreadEl) {
-                unreadEl.remove();
-            }
-
+            // Giữ background nếu đang active hoặc chuột đang hover (chống chớp tắt)
             const isHovered = row.matches(':hover');
             if (active || isHovered) {
                 row.style.backgroundColor = "var(--elevated)";
@@ -104,6 +104,7 @@ function renderChatList() {
             }
             existingRows.delete(chat.id);
         } else {
+            // Tạo mới row nếu chưa tồn tại
             row = document.createElement("button");
             row.type = "button";
             row.className = `flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors select-none`;
@@ -113,79 +114,45 @@ function renderChatList() {
             row.onmouseout = () => { if (chat.id !== state.activeChatId) row.style.backgroundColor = "transparent"; };
 
             row.dataset.chatId = chat.id;
-            row.innerHTML = `
-            ${avatarHtml(chat.participant)}
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center justify-between gap-2">
-                <span class="flex min-w-0 items-center gap-1.5 truncate">
-                  ${pinIcon}
-                  <span class="inline-flex min-w-0 items-center truncate text-[15px] font-bold" style="color: var(--ink);">${escapeHtml(chat.participant.name)}${getVerifiedBadge(!!chat.participant.isVerified)}</span>
-                </span>
-                ${last ? `<span class="js-chat-time shrink-0 text-xs font-medium" style="color: ${chat.unread > 0 ? "var(--ink)" : "var(--faint)"};">${formatListTimestamp(last.createdAt)}</span>` : ""}
-              </div>
-              <div class="js-bottom-row mt-0.5 flex items-center justify-between gap-2">
-                <span class="flex min-w-0 items-center gap-1 truncate text-[13px]" style="color: var(--muted);">
-                  ${receiptIcon}
-                  <span class="js-preview-text truncate font-normal">${escapeHtml(previewText)}</span>
-                </span>
-                ${chat.unread > 0 ? `<span class="js-unread-badge flex h-5 min-w-[20px] items-center justify-center rounded-pill px-1.5 text-[11px] font-bold" style="background-color: var(--ink); color: var(--canvas);">${chat.unread > 99 ? "99+" : chat.unread}</span>` : ""}
-              </div>
-            </div>
-          `;
+            row.innerHTML = innerHTMLContent;
 
-            // XỬ LÝ EVENT CHUẨN XÁC: Tránh xung đột click/longpress
-            let pressTimer = null;
-            let isLongPress = false;
-
-            const startPress = (x, y) => {
-                isLongPress = false;
-                pressTimer = setTimeout(() => {
-                    isLongPress = true;
-                    openChatListMenu(chat, x, y);
-                }, 450);
-            };
-
-            const cancelPress = () => {
-                if (pressTimer) {
-                    clearTimeout(pressTimer);
-                    pressTimer = null;
-                }
-            };
-
-            // Touch events
-            row.addEventListener("touchstart", (e) => {
-                const t = e.touches[0];
-                startPress(t.clientX, t.clientY);
-            }, { passive: true });
-
-            row.addEventListener("touchmove", cancelPress, { passive: true });
-            
-            row.addEventListener("touchend", (e) => {
-                cancelPress();
-                if (isLongPress) {
-                    e.preventDefault();
-                }
+            // Xử lý sự kiện click chuẩn xác (Không bị nuốt click khi spam)
+            row.addEventListener("click", (e) => {
+                selectChat(chat.id);
             });
 
-            // Mouse / Click event
+            // Chuột phải (desktop)
             row.addEventListener("contextmenu", (e) => {
                 e.preventDefault();
                 openChatListMenu(chat, e.clientX, e.clientY);
             });
 
-            row.addEventListener("click", (e) => {
-                if (isLongPress) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return;
-                }
-                selectChat(chat.id);
+            // Nhấn giữ (mobile) - Đã tối ưu flag tránh đè sự kiện click
+            let pressTimer = null;
+            let longPressed = false;
+
+            row.addEventListener("touchstart", (e) => {
+                longPressed = false;
+                const t = e.touches[0];
+                pressTimer = setTimeout(() => {
+                    longPressed = true;
+                    openChatListMenu(chat, t.clientX, t.clientY);
+                }, 480);
+            }, { passive: true });
+
+            row.addEventListener("touchend", (e) => {
+                if (pressTimer) clearTimeout(pressTimer);
             });
+
+            row.addEventListener("touchmove", () => {
+                if (pressTimer) clearTimeout(pressTimer);
+            }, { passive: true });
         }
 
         fragment.appendChild(row);
     });
 
+    // Xóa các row không còn trong danh sách
     existingRows.forEach((oldRow) => oldRow.remove());
 
     chatList.innerHTML = "";
@@ -207,15 +174,18 @@ function openSidebar() {
     if (!sidebarWrap) return;
     sidebarWrap.classList.remove("-translate-x-full");
     if (sidebarScrim) sidebarScrim.classList.add("hidden");
+    // Trên mobile, quay lại danh sách chat thì hiện lại bottom nav + trả lại khoảng chừa cho nó
     if (isMobileView() && bottomNav) {
         bottomNav.classList.remove("hidden");
         if (appShell) appShell.classList.add("pb-[60px]");
     }
 }
 function closeSidebar() {
+    // Chỉ ẩn list trên mobile khi vào chat; desktop luôn hiện list
     if (!sidebarWrap) return;
     if (isMobileView()) {
         sidebarWrap.classList.add("-translate-x-full");
+        // Ẩn bottom nav khi đang mở 1 chat trên mobile, đồng thời bỏ khoảng chừa pb-[60px] để không còn khe hở
         if (bottomNav) bottomNav.classList.add("hidden");
         if (appShell) appShell.classList.remove("pb-[60px]");
     } else {
@@ -227,6 +197,7 @@ if (openSidebarBtn) openSidebarBtn.addEventListener("click", openSidebar);
 if (closeSidebarBtn) closeSidebarBtn.addEventListener("click", closeSidebar);
 if (sidebarScrim) sidebarScrim.addEventListener("click", closeSidebar);
 
+// Đồng bộ lại trạng thái bottom nav khi resize qua lại giữa mobile/desktop
 window.addEventListener("resize", () => {
     if (!bottomNav) return;
     if (!isMobileView()) {
@@ -255,6 +226,7 @@ function selectChat(chatId) {
     markChatAsRead(chatId);
 }
 
+// Đánh dấu các tin nhắn của người kia trong đoạn chat này là đã xem (cho tính năng "Seen")
 async function markChatAsRead(chatId) {
     if (!window.supabaseClient || !chatId || chatId.startsWith("saved_")) return;
     const myId = myIdNow();
