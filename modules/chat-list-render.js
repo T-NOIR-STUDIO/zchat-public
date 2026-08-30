@@ -1,3 +1,7 @@
+/* ============================================================
+ * 08-chat-list-render.js
+ * Render danh sách chat (sidebar), chọn chat, đánh dấu đã đọc. Phụ thuộc: 02, 03, 04, 07.
+ * ============================================================ */
 function getFilteredSortedChats() {
     const q = state.searchQuery.trim().toLowerCase();
     return state.chats
@@ -7,34 +11,39 @@ function getFilteredSortedChats() {
             const ap = isChatPinned(a.id) ? 1 : 0;
             const bp = isChatPinned(b.id) ? 1 : 0;
             if (ap !== bp) return bp - ap;
-            const atLast = a.messages.length ? a.messages[a.messages.length - 1].createdAt : 0;
-            const btLast = b.messages.length ? b.messages[b.messages.length - 1].createdAt : 0;
-            const at = typeof atLast === "number" ? atLast : new Date(atLast).getTime() || 0;
-            const bt = typeof btLast === "number" ? btLast : new Date(btLast).getTime() || 0;
+            const at = a.messages.length ? a.messages[a.messages.length - 1].createdAt : 0;
+            const bt = b.messages.length ? b.messages[b.messages.length - 1].createdAt : 0;
             return bt - at;
         });
 }
 
 function renderChatList() {
-    if (!chatList || !chatListEmpty) return;
     const list = getFilteredSortedChats();
-    chatList.innerHTML = "";
 
     if (list.length === 0) {
+        chatList.innerHTML = "";
         chatListEmpty.classList.remove("hidden");
         chatListEmpty.classList.add("flex");
-        if (typeof icons === "function") icons();
+        icons();
         return;
     }
     chatListEmpty.classList.add("hidden");
     chatListEmpty.classList.remove("flex");
 
-    const lang = localStorage.getItem("zchat_lang") || "en";
-    const dict = (typeof i18n !== "undefined" && i18n[lang]) ? i18n[lang] : {};
+    const existingRows = new Map();
+    Array.from(chatList.children).forEach((child) => {
+        if (child.dataset && child.dataset.chatId) {
+            existingRows.set(child.dataset.chatId, child);
+        }
+    });
+
+    const fragment = document.createDocumentFragment();
 
     list.forEach((chat) => {
         const last = chat.messages[chat.messages.length - 1] || null;
         const isMine = last && last.senderId === "me";
+        const lang = localStorage.getItem("zchat_lang") || "en";
+        const dict = (typeof i18n !== "undefined" && i18n[lang]) ? i18n[lang] : {};
         let previewText;
         if (!last) {
             previewText = dict.noMessagesYet || "No messages yet";
@@ -58,14 +67,7 @@ function renderChatList() {
             ? `<i data-lucide="pin" class="w-[12px] h-[12px] shrink-0" style="color: var(--faint);"></i>`
             : "";
 
-        const row = document.createElement("button");
-        row.type = "button";
-        row.className = `flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors ${
-            active ? "bg-[var(--elevated)]" : "hover:bg-[var(--elevated)] bg-transparent"
-        }`;
-
-        row.dataset.chatId = chat.id;
-        row.innerHTML = `
+        const innerHTMLContent = `
         ${avatarHtml(chat.participant)}
         <div class="min-w-0 flex-1">
           <div class="flex items-center justify-between gap-2">
@@ -84,42 +86,65 @@ function renderChatList() {
           </div>
         </div>
       `;
-        row.addEventListener("click", () => selectChat(chat.id));
-        row.addEventListener("contextmenu", (e) => {
-            e.preventDefault();
-            openChatListMenu(chat, e.clientX, e.clientY);
-        });
 
-        let pressTimer = null;
-        let longPressed = false;
-        row.addEventListener("touchstart", (e) => {
-            longPressed = false;
-            const t = e.touches[0];
-            pressTimer = setTimeout(() => {
-                longPressed = true;
-                openChatListMenu(chat, t.clientX, t.clientY);
-            }, 480);
-        }, { passive: true });
-        row.addEventListener("touchend", (e) => {
-            if (pressTimer) clearTimeout(pressTimer);
-            if (longPressed) e.preventDefault();
-        });
-        row.addEventListener("touchmove", () => {
-            if (pressTimer) clearTimeout(pressTimer);
-        }, { passive: true });
+        let row = existingRows.get(chat.id);
 
-        chatList.appendChild(row);
+        if (row) {
+            if (row.innerHTML !== innerHTMLContent) {
+                row.innerHTML = innerHTMLContent;
+            }
+            row.style.backgroundColor = active ? "var(--elevated)" : "transparent";
+            existingRows.delete(chat.id);
+        } else {
+            row = document.createElement("button");
+            row.type = "button";
+            row.className = `flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors`;
+            row.style.backgroundColor = active ? "var(--elevated)" : "transparent";
+            row.onmouseover = () => { if (chat.id !== state.activeChatId) row.style.backgroundColor = "var(--elevated)"; };
+            row.onmouseout = () => { if (chat.id !== state.activeChatId) row.style.backgroundColor = "transparent"; };
+
+            row.dataset.chatId = chat.id;
+            row.innerHTML = innerHTMLContent;
+
+            row.addEventListener("click", () => selectChat(chat.id));
+            row.addEventListener("contextmenu", (e) => {
+                e.preventDefault();
+                openChatListMenu(chat, e.clientX, e.clientY);
+            });
+
+            let pressTimer = null;
+            let longPressed = false;
+            row.addEventListener("touchstart", (e) => {
+                longPressed = false;
+                const t = e.touches[0];
+                pressTimer = setTimeout(() => {
+                    longPressed = true;
+                    openChatListMenu(chat, t.clientX, t.clientY);
+                }, 480);
+            }, { passive: true });
+            row.addEventListener("touchend", (e) => {
+                if (pressTimer) clearTimeout(pressTimer);
+                if (longPressed) e.preventDefault();
+            });
+            row.addEventListener("touchmove", () => {
+                if (pressTimer) clearTimeout(pressTimer);
+            }, { passive: true });
+        }
+
+        fragment.appendChild(row);
     });
 
-    if (typeof icons === "function") icons();
+    existingRows.forEach((oldRow) => oldRow.remove());
+
+    chatList.appendChild(fragment);
+
+    icons();
 }
 
-if (searchInput) {
-    searchInput.addEventListener("input", (e) => {
-        state.searchQuery = e.target.value;
-        renderChatList();
-    });
-}
+searchInput.addEventListener("input", (e) => {
+    state.searchQuery = e.target.value;
+    renderChatList();
+});
 
 function isMobileView() {
     return window.matchMedia && window.matchMedia("(max-width: 767px)").matches;
@@ -163,7 +188,7 @@ window.addEventListener("resize", () => {
     }
 });
 
-async function selectChat(chatId) {
+function selectChat(chatId) {
     state.activeChatId = chatId;
     const chat = state.chats.find((c) => c.id === chatId);
     if (chat) chat.unread = 0;
@@ -171,17 +196,15 @@ async function selectChat(chatId) {
     closeInfoDrawer();
     closeSidebar();
     renderChatList();
-
-    if (typeof loadMessagesForChat === "function") {
-        await loadMessagesForChat(chatId);
-    }
     renderActiveChat();
+
+    loadMessagesForChat(chatId);
     markChatAsRead(chatId);
 }
 
 async function markChatAsRead(chatId) {
     if (!window.supabaseClient || !chatId || chatId.startsWith("saved_")) return;
-    const myId = typeof myIdNow === "function" ? myIdNow() : null;
+    const myId = myIdNow();
     if (!myId) return;
     try {
         const { error } = await window.supabaseClient
@@ -204,7 +227,6 @@ function statusIconMarkup(status) {
 }
 
 function renderActiveChat() {
-    if (!emptyState || !activeChatEl) return;
     const chat = state.chats.find((c) => c.id === state.activeChatId);
 
     if (!chat) {
@@ -220,23 +242,21 @@ function renderActiveChat() {
     activeChatEl.classList.remove("hidden");
     activeChatEl.classList.add("flex");
 
-    if (chatHeaderAvatar) chatHeaderAvatar.innerHTML = avatarHtml(chat.participant, 40);
+    chatHeaderAvatar.innerHTML = avatarHtml(chat.participant, 40);
     const verifiedBadge = getVerifiedBadge(!!chat.participant.isVerified);
-    if (chatHeaderName) chatHeaderName.innerHTML = escapeHtml(chat.participant.name) + verifiedBadge;
-    if (chatHeaderStatus) chatHeaderStatus.textContent = "";
+    chatHeaderName.innerHTML = escapeHtml(chat.participant.name) + verifiedBadge;
+    chatHeaderStatus.textContent = "";
 
-    const infoAvatarEl = document.getElementById("infoAvatar");
-    if (infoAvatarEl) infoAvatarEl.innerHTML = avatarHtml(chat.participant, 64);
+    document.getElementById("infoAvatar").innerHTML = avatarHtml(chat.participant, 64);
     const infoNameEl = document.getElementById("infoName");
     if (infoNameEl) infoNameEl.innerHTML = escapeHtml(chat.participant.name) + verifiedBadge;
-    const infoUsernameEl = document.getElementById("infoUsername");
-    if (infoUsernameEl) infoUsernameEl.textContent = "@" + chat.participant.name.toLowerCase().replace(/\s+/g, "");
+    document.getElementById("infoUsername").textContent = "@" + chat.participant.name.toLowerCase().replace(/\s+/g, "");
 
-    if (typeof updateDisappearingUI === "function") updateDisappearingUI(chat.disappearingTime || "off");
-    if (blockScreenshotsToggle) blockScreenshotsToggle.checked = !!chat.blockScreenshots;
+    updateDisappearingUI(chat.disappearingTime || "off");
+    blockScreenshotsToggle.checked = !!chat.blockScreenshots;
 
-    if (typeof applyScreenshotProtection === "function") applyScreenshotProtection(chat.blockScreenshots);
+    applyScreenshotProtection(chat.blockScreenshots);
 
-    if (typeof renderMessages === "function") renderMessages(chat);
-    if (typeof icons === "function") icons();
+    renderMessages(chat);
+    icons();
 }
