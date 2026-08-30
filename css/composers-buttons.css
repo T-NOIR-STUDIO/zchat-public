@@ -2,6 +2,7 @@
  * 05-composer-buttons.css
  * Attach / Emoji / Send
  * ============================================================ */
+
 #attachBtn {
     width: 44px !important;
     height: 44px !important;
@@ -17,6 +18,8 @@
     stroke-linecap: square !important;
     stroke-linejoin: miter !important;
 }
+
+/* Emoji: to, sát mép — lướt phải + ẩn khi Send hiện */
 #emojiBtn {
     width: 36px !important;
     height: 36px !important;
@@ -29,17 +32,41 @@
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    overflow: hidden;
+    pointer-events: auto;
+    transition:
+        opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+        width 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+        min-width 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+        margin 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 #emojiBtn svg,
 #emojiBtn i {
-    width: 22px !important;
-    height: 22px !important;
+    width: 24px !important;
+    height: 24px !important;
     stroke-width: 2 !important;
+    flex-shrink: 0;
 }
+
+/* Có chữ → emoji lướt sang phải rồi núp */
+#composerShell:has(#sendBtn.is-visible) #emojiBtn {
+    opacity: 0;
+    transform: translateX(18px) scale(0.45);
+    width: 0 !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    pointer-events: none;
+}
+
 #composerShell {
-    padding-right: 2px !important;
+    padding-right: 4px !important;
     gap: 2px !important;
 }
+
+/* Send: ẩn khi trống, mọc từ phải → trái khi có chữ */
 #sendBtn {
     width: 0 !important;
     min-width: 0 !important;
@@ -62,14 +89,16 @@
         transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
         width 0.28s cubic-bezier(0.22, 1, 0.36, 1),
         min-width 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-        margin-left 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+        margin-left 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+        left 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 #sendBtn.is-visible {
     opacity: 1;
     transform: scale(1);
     width: 36px !important;
     min-width: 36px !important;
-    margin-left: 5px !important;
+    margin-left: 4px !important;
+    left: 4px;
     pointer-events: auto;
 }
 #sendBtn svg,
@@ -84,7 +113,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    #sendBtn {
+    #sendBtn,
+    #emojiBtn {
         transition-duration: 0.01ms !important;
     }
     *, *::before, *::after {
