@@ -1,8 +1,6 @@
 /* ============================================================
  * 10-composer-shell-input.css
- * Composer: 1 dòng / nhiều dòng giãn cao + bo góc mềm.
  * ============================================================ */
-
 #composerShell {
     height: 44px;
     min-height: 44px;
@@ -22,10 +20,6 @@
     overflow: hidden !important;
 }
 
-/*
- * Nhiều dòng: giãn lên trên (padding-top).
- * padding-bottom vừa phải — không tụt đáy quá thấp, Send vẫn neo flex-end.
- */
 #composerShell.is-multiline {
     height: auto;
     min-height: 48px;
