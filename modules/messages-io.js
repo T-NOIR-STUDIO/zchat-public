@@ -3,9 +3,6 @@
  * Giao tiếp Supabase cho tin nhắn: load lịch sử, gửi tin (bao gồm E2EE encrypt/decrypt). Phụ thuộc: 02-04, 09, 12.
  * ============================================================ */
 /* ============ SUPABASE MESSAGES ============ */
-let _loadListInflight = null;
-const _loadChatInflight = Object.create(null);
-
 function makeUuid() {
     if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -18,25 +15,37 @@ function makeUuid() {
 async function loadMessagesFromSupabase() {
     if (!window.supabaseClient) {
         console.warn("[ZChat] supabaseClient missing");
+        try {
+            const el = document.getElementById("appLoading");
+            if (el) { el.classList.add("is-done"); setTimeout(() => { try { el.remove(); } catch (_) {} }, 400); }
+        } catch (_) {}
         return;
     }
-    // Chặn gọi trùng khi enterApp / bootstrap chạy 2 lần
-    if (_loadListInflight) return _loadListInflight;
-    _loadListInflight = (async () => {
+    const hideLoading = () => {
+        try {
+            const el = document.getElementById("appLoading");
+            if (el) {
+                el.classList.add("is-done");
+                setTimeout(() => { try { el.remove(); } catch (_) {} }, 400);
+            }
+        } catch (_) {}
+    };
     try {
         const me = currentUsername || localStorage.getItem("zchat_username") || "";
         const meLower = me.toLowerCase();
-        if (!meLower) return;
+        if (!meLower) { hideLoading(); return; }
 
-        const PREVIEW_PER_CHAT = 5;
+        // List chỉ cần 1 tin cuối / chat → nhanh hơn nhiều
+        const PREVIEW_PER_CHAT = 1;
         const myId = await getMyUserId();
         const mySavedChatId = myId ? ("saved_" + myId) : ("saved_" + meLower);
         ensureSavedMessagesChat();
+        // Không block: ensure saved conv chạy nền
         if (myId) {
-            try { await ensureSavedMessagesConversation(myId); } catch (_) {}
+            ensureSavedMessagesConversation(myId).catch(() => {});
         }
 
-        // 1) Danh sách conversation UUID của mình
+        // 1) Conversations của mình
         let convRows = [];
         if (myId) {
             try {
@@ -55,9 +64,9 @@ async function loadMessagesFromSupabase() {
         }
         const convIds = convRows.map((c) => c.id).filter(Boolean);
 
-        // Resolve username đối phương từ user_1 / user_2 (tránh hiện "Chat User")
+        // Partner ids
         const otherIds = [];
-        const convOtherId = Object.create(null); // convId → otherUserId
+        const convOtherId = Object.create(null);
         for (const c of convRows) {
             if (!c || !c.id || !myId) continue;
             const otherId = String(c.user_1) === String(myId) ? c.user_2 : c.user_1;
@@ -67,42 +76,68 @@ async function loadMessagesFromSupabase() {
             }
         }
         const uniqueOtherIds = [...new Set(otherIds.filter(Boolean))];
-        if (uniqueOtherIds.length && window.supabaseClient) {
-            try {
-                const { data: userRows } = await window.supabaseClient
-                    .from("users")
-                    .select("id, username, avatar_type, avatar_color, avatar_emoji, avatar_url, is_verified")
-                    .in("id", uniqueOtherIds);
-                const byId = Object.create(null);
-                (userRows || []).forEach((u) => {
-                    if (u && u.id) byId[u.id] = u;
-                });
-                for (const c of convRows) {
-                    if (!c || !c.id) continue;
-                    const oid = convOtherId[c.id];
-                    const u = oid ? byId[oid] : null;
-                    if (u && u.username) {
-                        conversationOtherName[c.id] = u.username;
+
+        // 2) Users partners + preview messages — song song
+        const chatIdsToPreview = [...new Set([mySavedChatId, ...convIds])].filter(Boolean);
+        const usersPromise = (uniqueOtherIds.length
+            ? window.supabaseClient
+                .from("users")
+                .select("id, username, avatar_type, avatar_color, avatar_emoji, avatar_url, is_verified")
+                .in("id", uniqueOtherIds)
+            : Promise.resolve({ data: [] }));
+
+        const msgsPromise = (async () => {
+            const rows = [];
+            if (!chatIdsToPreview.length) return rows;
+            const ID_CHUNK = 30;
+            for (let i = 0; i < chatIdsToPreview.length; i += ID_CHUNK) {
+                const slice = chatIdsToPreview.slice(i, i + ID_CHUNK);
+                try {
+                    const { data, error } = await window.supabaseClient
+                        .from("messages")
+                        .select("id, chat_id, sender_id, content, created_at, read_at")
+                        .in("chat_id", slice)
+                        .order("created_at", { ascending: false })
+                        .limit(Math.min(200, slice.length * 4));
+                    if (error) {
+                        console.warn("[ZChat] preview bulk:", error.message || error);
+                        // fallback 1 chat / request (lô nhỏ)
+                        for (const cid of slice) {
+                            const { data: one } = await window.supabaseClient
+                                .from("messages")
+                                .select("id, chat_id, sender_id, content, created_at, read_at")
+                                .eq("chat_id", cid)
+                                .order("created_at", { ascending: false })
+                                .limit(PREVIEW_PER_CHAT);
+                            if (one && one.length) rows.push(...one);
+                        }
+                    } else if (data && data.length) {
+                        rows.push(...data);
                     }
+                } catch (e) {
+                    console.warn("[ZChat] preview bulk exception:", e);
                 }
-                // Gắn luôn vào state nếu chat đã tồn tại
-                state.chats.forEach((chat) => {
-                    if (!isUuid(chat.id)) return;
-                    const uname = conversationOtherName[chat.id];
-                    if (uname && (chat.participant.name === "Chat User" || !chat.participant.name)) {
-                        chat.participant.name = uname;
-                        const oid = convOtherId[chat.id];
-                        const u = oid ? byId[oid] : null;
-                        if (u) applyAvatarFields(chat.participant, u);
-                        if (oid) chat.participant.userId = oid;
-                    }
-                });
-            } catch (e) {
-                console.warn("[ZChat] resolve partner names:", e);
             }
+            return rows;
+        })();
+
+        const [userRes, allPreviewRows] = await Promise.all([usersPromise, msgsPromise]);
+        const userRows = (userRes && userRes.data) || [];
+        const byId = Object.create(null);
+        userRows.forEach((u) => {
+            if (u && u.id) {
+                byId[u.id] = u;
+                if (u.username) userIdToName[u.id] = u.username;
+            }
+        });
+        for (const c of convRows) {
+            if (!c || !c.id) continue;
+            const oid = convOtherId[c.id];
+            const u = oid ? byId[oid] : null;
+            if (u && u.username) conversationOtherName[c.id] = u.username;
         }
 
-        // Đảm bảo có slot chat trong state (kể cả chưa có tin)
+        // Slot chat trong state
         for (const c of convRows) {
             if (!c || !c.id) continue;
             const otherId = convOtherId[c.id] || (c.user_1 === myId ? c.user_2 : c.user_1);
@@ -124,51 +159,33 @@ async function loadMessagesFromSupabase() {
                     messages: [],
                     _msgsFullyLoaded: false,
                 };
+                if (otherId && byId[otherId]) applyAvatarFields(chat.participant, byId[otherId]);
                 state.chats.push(chat);
             } else {
                 if (partnerName && (chat.participant.name === "Chat User" || !chat.participant.name)) {
                     chat.participant.name = partnerName;
                 }
-                if (otherId) chat.participant.userId = otherId;
+                if (otherId) {
+                    chat.participant.userId = otherId;
+                    if (byId[otherId]) applyAvatarFields(chat.participant, byId[otherId]);
+                }
             }
         }
 
-        // 2) Tập chat_id cần preview: conversations + saved + (legacy nếu còn)
-        const chatIdsToPreview = [...new Set([mySavedChatId, ...convIds])];
-
-        // 3) MỘT request preview cho mọi chat (thay vì N query)
-        const allPreviewRows = [];
-        if (chatIdsToPreview.length) {
-            const limit = Math.min(chatIdsToPreview.length * PREVIEW_PER_CHAT, 200);
-            const { data: previewData, error: previewErr } = await window.supabaseClient
-                .from("messages")
-                .select("id, chat_id, sender_id, content, created_at, read_at")
-                .in("chat_id", chatIdsToPreview)
-                .order("created_at", { ascending: false })
-                .limit(limit);
-            if (previewErr) {
-                console.warn("[ZChat] preview batch:", previewErr.message || previewErr);
-            } else {
-                (previewData || []).forEach((m) => allPreviewRows.push(m));
-            }
-        }
-
-        // Legacy: chỉ khi chưa có conversation UUID
+        // Legacy nếu chưa có conv
         if (!convIds.length) {
-            const { data: legacyRows } = await window.supabaseClient
-                .from("messages")
-                .select("id, chat_id, sender_id, content, created_at, read_at")
-                .or(`chat_id.ilike.chat_${meLower}_%,chat_id.ilike.chat_%_${meLower}`)
-                .order("created_at", { ascending: false })
-                .limit(40);
-            (legacyRows || []).forEach((m) => allPreviewRows.push(m));
+            try {
+                const { data: legacyRows } = await window.supabaseClient
+                    .from("messages")
+                    .select("id, chat_id, sender_id, content, created_at, read_at")
+                    .or(`chat_id.ilike.chat_${meLower}_%,chat_id.ilike.chat_%_${meLower}`)
+                    .order("created_at", { ascending: false })
+                    .limit(40);
+                (legacyRows || []).forEach((m) => allPreviewRows.push(m));
+            } catch (_) {}
         }
 
-        const pendingNameResolves = [];
-        // Giữ tối đa 5 tin / chat (đã limit ở query; legacy gộp thì cắt lại)
         const perChatCount = Object.create(null);
-
-        // Mới nhất trước
         allPreviewRows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
         for (const m of allPreviewRows) {
@@ -185,7 +202,6 @@ async function loadMessagesFromSupabase() {
                 let otherName = resolveOtherNameFromChatId(chatId, me, userIdToName[m.sender_id] || null);
                 if (isUuid(chatId) && (otherName === "Chat User" || !otherName)) {
                     otherName = conversationOtherName[chatId] || otherName;
-                    pendingNameResolves.push({ chatId, meId: myId });
                 }
                 chat = {
                     id: chatId,
@@ -213,7 +229,6 @@ async function loadMessagesFromSupabase() {
                     status: m.read_at ? "read" : "delivered",
                 });
             }
-            // Cập nhật tên nếu đang placeholder
             if (
                 (chat.participant.name === "Chat User" || !chat.participant.name) &&
                 m.sender_id &&
@@ -228,18 +243,6 @@ async function loadMessagesFromSupabase() {
             }
         }
 
-        await Promise.all(
-            pendingNameResolves.map(async ({ chatId, meId }) => {
-                const name = await resolveOtherNameFromConversationId(chatId, meId);
-                if (!name) return;
-                const chat = state.chats.find((c) => c.id === chatId);
-                if (chat && (chat.participant.name === "Chat User" || !chat.participant.name)) {
-                    chat.participant.name = name;
-                }
-            })
-        );
-
-        // Bổ sung: nếu còn "Chat User" mà có tin từ người khác → resolve tên theo sender_id
         state.chats.forEach((chat) => {
             if (chat.participant.name !== "Chat User" && chat.participant.name) return;
             if (String(chat.id).startsWith("saved_")) {
@@ -247,39 +250,26 @@ async function loadMessagesFromSupabase() {
                 chat.participant.isSelfNotes = true;
                 return;
             }
-            const fromMsg = chat.messages.find(
-                (m) => m.senderId && m.senderId !== "me"
-            );
+            if (conversationOtherName[chat.id]) {
+                chat.participant.name = conversationOtherName[chat.id];
+                return;
+            }
+            const fromMsg = chat.messages.find((m) => m.senderId && m.senderId !== "me");
             if (fromMsg && fromMsg.senderId) {
-                const sid = fromMsg.senderId;
-                chat.participant.userId = sid;
-                const cached = userIdToName[sid];
+                chat.participant.userId = fromMsg.senderId;
+                const cached = userIdToName[fromMsg.senderId];
                 if (cached) {
                     chat.participant.name = cached;
                     conversationOtherName[chat.id] = cached;
                 }
-            } else if (conversationOtherName[chat.id]) {
-                chat.participant.name = conversationOtherName[chat.id];
             }
         });
-
-        await Promise.all(
-            state.chats
-                .filter((c) => c.participant && c.participant.userId &&
-                    (!c.participant.name || c.participant.name === "Chat User"))
-                .map(async (c) => {
-                    const n = await resolveUsernameByUserId(c.participant.userId);
-                    if (n) {
-                        c.participant.name = n;
-                        conversationOtherName[c.id] = n;
-                    }
-                })
-        );
 
         state.chats.forEach((c) => {
             c.messages.sort((a, b) => a.createdAt - b.createdAt);
         });
 
+        // 1) Decrypt preview tin nhắn TRƯỚC (chờ xong hoàn toàn)
         if (window.ZChatE2EE) {
             try {
                 await window.ZChatE2EE.ensureUserKeys(me);
@@ -287,29 +277,42 @@ async function loadMessagesFromSupabase() {
                 if (priv) {
                     const allMsgs = [];
                     state.chats.forEach((c) => c.messages.forEach((m) => allMsgs.push(m)));
-                    await window.ZChatE2EE.decryptMessagesBatch(allMsgs, priv);
+                    if (allMsgs.length) {
+                        await window.ZChatE2EE.decryptMessagesBatch(allMsgs, priv);
+                    }
                 }
             } catch (e2eeErr) {
-                console.error("[E2EE] ensure keys / preview decrypt:", e2eeErr);
+                console.error("[E2EE] preview decrypt:", e2eeErr);
             }
         }
 
-        renderChatList();
+        // 2) Load & Decrypt full tin nhắn cho chat đang mở (nếu có)
         const activeChat = state.chats.find((c) => c.id === state.activeChatId);
         if (activeChat) {
-            // Mở sẵn 1 chat → load full
-            await loadMessagesForChat(activeChat.id);
+            try {
+                await loadMessagesForChat(activeChat.id);
+            } catch (e) {
+                console.warn("[ZChat] active chat load failed:", e);
+            }
         }
 
-        refreshAllParticipantAvatars();
+        // 3) Cập nhật tick xanh & avatar hoàn tất trước khi hiển thị UI
+        if (typeof refreshAllParticipantAvatars === "function") {
+            try {
+                await refreshAllParticipantAvatars();
+            } catch (avErr) {
+                console.warn("[ZChat] refresh avatars failed:", avErr);
+            }
+        }
+
+        // 4) Render UI chuẩn chỉnh & Tắt Loading Spinner cùng lúc
+        renderChatList();
+        if (activeChat) renderMessages(activeChat);
+        hideLoading();
+
     } catch (err) {
         console.error("[ZChat] loadMessagesFromSupabase exception:", err);
-    }
-    })();
-    try {
-        return await _loadListInflight;
-    } finally {
-        _loadListInflight = null;
+        hideLoading();
     }
 }
 
@@ -323,8 +326,6 @@ async function loadMessagesForChat(chatId) {
         if (state.activeChatId === chatId) renderMessages(chat);
         return;
     }
-    if (_loadChatInflight[chatId]) return _loadChatInflight[chatId];
-    _loadChatInflight[chatId] = (async () => {
     try {
         const me = currentUsername || localStorage.getItem("zchat_username") || "";
         // Load toàn bộ tin của chat (phân trang lớn; thực tế 1-1 ít khi > vài nghìn)
@@ -382,11 +383,7 @@ async function loadMessagesForChat(chatId) {
     } catch (err) {
         console.error("[ZChat] loadMessagesForChat exception:", err);
         if (state.activeChatId === chatId) renderMessages(chat);
-    } finally {
-        delete _loadChatInflight[chatId];
     }
-    })();
-    return _loadChatInflight[chatId];
 }
 
 async function postMessageToSupabase(msgObj, chatId) {
@@ -511,3 +508,5 @@ async function postMessageToSupabase(msgObj, chatId) {
         console.error("[ZChat] postMessageToSupabase exception:", err);
     }
 }
+
+/* Upload ảnh chat → Supabase Storage bucket "chat-images" (public URL) */
