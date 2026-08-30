@@ -342,24 +342,13 @@
     }
 
     function renderTheme() {
-        const theme = (draft.theme === "light" || draft.theme === "dark")
-            ? draft.theme
-            : (localStorage.getItem("zchat_theme") || "dark");
+        const theme = draft.theme === "light" ? "light" : "dark";
         draft.theme = theme;
-        try { localStorage.setItem("zchat_theme", theme); } catch (_) {}
-
         document.documentElement.setAttribute("data-theme", theme);
         if (document.body) document.body.setAttribute("data-theme", theme);
-        document.documentElement.style.backgroundColor = theme === "light" ? "#FFFFFF" : "#000000";
-        if (document.body) {
-            document.body.style.backgroundColor = "var(--canvas)";
-            document.body.style.color = "var(--ink)";
-        }
-
         const isLight = theme === "light";
         const lang = localStorage.getItem("zchat_lang") || "en";
         const dict = i18n[lang] || i18n.en;
-
         if (themeSwitch) {
             themeSwitch.setAttribute("aria-checked", String(isLight));
             themeSwitch.dataset.on = String(isLight);
@@ -419,14 +408,13 @@
 
     /* ============ INIT FORM VALUES ============ */
     usernameField.value = saved.username;
-    bioField.value = saved.bio;
+    if (bioField) bioField.value = saved.bio;
     buildColorSwatches();
     buildEmojiSwatches();
     renderAvatarPreview();
     renderPresenceButtons();
     renderUsernamePreview();
     applyLanguage();
-    renderTheme();
 
     /* ============ EVENTS ============ */
     usernameField.addEventListener("input", () => {
@@ -436,9 +424,11 @@
         if (usernameField.value.trim()) usernameError.classList.add("hidden");
     });
 
-    bioField.addEventListener("input", () => {
-        draft.bio = bioField.value;
-    });
+    if (bioField) {
+        bioField.addEventListener("input", () => {
+            draft.bio = bioField.value;
+        });
+    }
 
     changeAvatarBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -590,7 +580,6 @@
     if (themeSwitch) {
         themeSwitch.addEventListener("click", () => {
             draft.theme = draft.theme === "light" ? "dark" : "light";
-            try { localStorage.setItem("zchat_theme", draft.theme); } catch (_) {}
             renderTheme();
         });
     }
@@ -619,7 +608,7 @@
             return;
         }
 
-        localStorage.setItem("zchat_bio", bioField.value.trim() || "Available");
+        localStorage.setItem("zchat_bio", (bioField && bioField.value.trim()) || draft.bio || "Available");
         localStorage.setItem("zchat_presence", draft.presence);
         localStorage.setItem("zchat_avatar_type", draft.avatarType);
         localStorage.setItem("zchat_avatar_color", draft.avatarColor);
