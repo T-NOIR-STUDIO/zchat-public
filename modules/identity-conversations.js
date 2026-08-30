@@ -1,8 +1,9 @@
 /* ============================================================
  * 03-identity-conversations.js
- * Định danh user (UUID), bảng conversations, avatar sync, state chính (state, currentUsername). Phụ thuộc: 02-utils.js
+ * Định danh user (UUID), bảng conversations, avatar sync, state chính.
+ * Phụ thuộc: 02-utils.js
  * ============================================================ */
-/* ============ ĐỒNG BỘ AVATAR NGƯỜI CHAT CÙNG (Supabase "users") ============ */
+
 function applyAvatarFields(participant, row) {
     if (!participant || !row) return;
     participant.avatarType = row.avatar_type || "initials";
@@ -49,7 +50,6 @@ function myIdNow() {
     return myUserIdCache || localStorage.getItem("zchat_user_id") || "";
 }
 
-/** Tin của mình chỉ theo sender_id (uuid) */
 function isRowFromMe(row, myId) {
     if (!row || !myId || !row.sender_id) return false;
     return String(row.sender_id) === String(myId);
@@ -95,9 +95,15 @@ async function resolveUserIdByUsername(username) {
 }
 
 async function getMyUserId() {
+    // Ưu tiên Cache trong RAM hoặc localStorage để không bắn thêm request `users` thừa
+    if (!myUserIdCache) {
+        myUserIdCache = localStorage.getItem("zchat_user_id") || null;
+    }
     if (myUserIdCache) return myUserIdCache;
+
     const me = (currentUsername || localStorage.getItem("zchat_username") || "").trim();
     if (!me) return null;
+    
     const id = await resolveUserIdByUsername(me);
     if (id) {
         myUserIdCache = id;
@@ -106,15 +112,10 @@ async function getMyUserId() {
     return id;
 }
 
-/**
- * Tạo / lấy id phòng chat 1-1 từ 2 user UUID.
- * Ưu tiên RPC get_or_create_conversation; fallback insert/select bảng conversations.
- */
 async function getOrCreateConversationId(myUserId, otherUserId) {
     if (!window.supabaseClient || !myUserId || !otherUserId) return null;
     if (myUserId === otherUserId) return null;
 
-    // Thử RPC (nếu đã tạo function trên Supabase)
     try {
         const { data: rpcId, error: rpcErr } = await window.supabaseClient.rpc(
             "get_or_create_conversation",
@@ -122,9 +123,8 @@ async function getOrCreateConversationId(myUserId, otherUserId) {
         );
         if (!rpcErr && rpcId) return rpcId;
         if (rpcErr) console.warn("[ZChat] RPC get_or_create_conversation:", rpcErr.message || rpcErr);
-    } catch (_) { /* fallback */ }
+    } catch (_) {}
 
-    // Fallback client: chuẩn hóa user_1 < user_2 (so text UUID)
     const u1 = myUserId < otherUserId ? myUserId : otherUserId;
     const u2 = myUserId < otherUserId ? otherUserId : myUserId;
 
@@ -144,7 +144,6 @@ async function getOrCreateConversationId(myUserId, otherUserId) {
             .maybeSingle();
         if (!insErr && created && created.id) return created.id;
 
-        // Race: insert trùng → select lại
         if (insErr) {
             const { data: again } = await window.supabaseClient
                 .from("conversations")
@@ -161,7 +160,6 @@ async function getOrCreateConversationId(myUserId, otherUserId) {
     return null;
 }
 
-/** Resolve username đối phương từ conversation uuid (user_1 / user_2) */
 async function resolveOtherNameFromConversationId(convId, meId) {
     if (!window.supabaseClient || !convId) return null;
     if (conversationOtherName[convId]) return conversationOtherName[convId];
@@ -189,13 +187,9 @@ async function resolveOtherNameFromConversationId(convId, meId) {
     return null;
 }
 
-/* Lấy avatar cho tất cả participant hiện có trong state.chats.
-   Dùng ilike (không phân biệt hoa/thường) từng tên một để tránh lệch case
-   giữa tên hiển thị trong chat và username thật lưu trong bảng users. */
 async function refreshAllParticipantAvatars() {
     if (!window.supabaseClient) return;
 
-    // Ưu tiên bulk theo userId (1 query) — tránh N+1 fetchAvatarForUsername
     const ids = [...new Set(
         state.chats
             .map((c) => c.participant && c.participant.userId)
@@ -232,12 +226,10 @@ async function refreshAllParticipantAvatars() {
             }
         }
 
-        // Chỉ query theo tên khi thiếu userId (vẫn batch, không N lần)
         if (namesNeed.length) {
             const CHUNK = 30;
             for (let i = 0; i < namesNeed.length; i += CHUNK) {
                 const slice = namesNeed.slice(i, i + CHUNK);
-                // or(username.ilike.a,username.ilike.b,...) — 1 request / chunk
                 const orFilter = slice.map((n) => `username.ilike.${n}`).join(",");
                 const { data } = await window.supabaseClient
                     .from("users")
@@ -278,7 +270,6 @@ async function refreshAllParticipantAvatars() {
     }
 }
 
-/* Nghe realtime khi user khác đổi avatar -> cập nhật ngay không cần reload */
 function subscribeToUserAvatarChanges() {
     if (!window.supabaseClient) return;
 
@@ -323,13 +314,11 @@ function isSelfNotesChat(chat) {
     return !!(chat && (isSelfNotesChatId(chat.id) || (chat.participant && chat.participant.isSelfNotes)));
 }
 
-/** Chat ghi chú = tên mình + avatar mình (không còn nhãn Saved Messages) */
 function ensureSavedMessagesChat() {
     const displayName = (currentUsername || localStorage.getItem("zchat_username") || "Me").trim();
     const uid = myUserIdCache || localStorage.getItem("zchat_user_id") || "";
     const savedChatId = uid ? ("saved_" + uid) : ("saved_" + displayName.toLowerCase());
 
-    // Migrate label cũ
     state.chats.forEach((c) => {
         if (!c || !c.participant) return;
         if (c.participant.name === "Saved Messages" || isSelfNotesChatId(c.id)) {
