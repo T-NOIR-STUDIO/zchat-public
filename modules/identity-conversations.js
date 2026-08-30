@@ -358,7 +358,7 @@ function ensureSavedMessagesChat() {
     p.avatarEmoji = localStorage.getItem("zchat_avatar_emoji") || p.avatarEmoji || null;
     p.avatarUrl = localStorage.getItem("zchat_avatar_url") || p.avatarUrl || null;
 
-    if (!state.activeChatId) state.activeChatId = savedChatId;
+    if (!state.activeChatId) state.activeChatId = null;
     return savedChatId;
 }
 
