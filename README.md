@@ -98,17 +98,6 @@ RLS policies and RPCs (e.g. `register_user`, `get_or_create_conversation`, `clea
 
 ---
 
-## Local development
-
-1. Clone the repo and serve static files (any static server or GitHub Pages).
-2. Configure Supabase URL + anon key in `auth.js` (or your env injection).
-3. Ensure Storage bucket `chat-images` is public (or adjust signed URLs).
-4. Optional: set signaling URL for calls (`localStorage.zchat_signal_url` or `window.ZCHAT_SIGNAL_URL`).
-
-Open `index.html` in a modern browser (Web Crypto + Realtime required).
-
----
-
 ## Security notes
 
 - **Private keys** are stored on the server in `users.private_key` for multi-device decrypt. Treat RLS and access control carefully; this is a hybrid model, not pure device-only Signal-style storage.
