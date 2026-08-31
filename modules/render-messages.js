@@ -86,6 +86,7 @@ function renderMessages(chat) {
         return;
     }
 
+    // Seen chỉ hiện dưới tin nhắn cuối cùng của mình
     let lastMineIdx = -1;
     for (let k = msgs.length - 1; k >= 0; k--) {
         if (msgs[k].senderId === "me") { lastMineIdx = k; break; }
@@ -189,12 +190,15 @@ function renderMessages(chat) {
                 ? `<div class="flex items-center gap-1 px-1 text-[11px]" style="color: var(--faint);">${timerIcon}</div>`
                 : "");
 
+        // Menu 3 chấm neo theo bong bóng/ảnh — không tính khối Seen (meta)
         wrap.innerHTML = `
-        <div class="relative flex max-w-[72%] min-w-0 flex-col gap-1.5 ${isMine ? "items-end" : "items-start"}">
-          ${menuBtnHtml}
-          ${attachmentHtml}
-          ${replyThumbHtml}
-          ${bubble}
+        <div class="flex max-w-[72%] min-w-0 flex-col gap-1.5 ${isMine ? "items-end" : "items-start"}">
+          <div class="relative">
+            ${menuBtnHtml}
+            ${attachmentHtml}
+            ${replyThumbHtml}
+            ${bubble}
+          </div>
           ${meta}
         </div>`;
 
