@@ -42,11 +42,13 @@
             font-size: 0.8rem !important;
             padding-top: 0.45rem !important;
             padding-bottom: 0.45rem !important;
-            background-color: transparent;
-            color: var(--muted);
+            background-color: transparent !important;
+            color: var(--muted) !important;
             border: none;
             cursor: pointer;
+            transition: background-color .15s ease, color .15s ease;
         }
+        /* Tab đang chọn: nền xanh + chữ trắng (tương phản rõ cả dark/light) */
         #avatarPopover .avatar-tab.is-active {
             background-color: #1c9bf0 !important;
             color: #ffffff !important;
