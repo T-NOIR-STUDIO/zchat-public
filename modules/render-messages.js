@@ -2,6 +2,77 @@
  * 12-render-messages.js
  * Render khung tin nhắn (bong bóng chat) + typing indicator. Phụ thuộc: 02, 03, 04, 05, 09, 11.
  * ============================================================ */
+
+/** Parse ref ảnh chat-images (path private / URL public|signed cũ) */
+function parseChatImageRef(ref) {
+    if (!ref) return null;
+    const s = String(ref).trim();
+    if (s.startsWith("storage:chat-images/")) {
+        return s.slice("storage:chat-images/".length).split("?")[0];
+    }
+    if (s.startsWith("storage:")) {
+        const rest = s.slice(8);
+        const i = rest.indexOf("/");
+        if (i > 0 && rest.slice(0, i) === "chat-images") {
+            return rest.slice(i + 1).split("?")[0];
+        }
+    }
+    const pub = s.match(/\/storage\/v1\/object\/public\/chat-images\/(.+?)(?:\?|$)/);
+    if (pub) return decodeURIComponent(pub[1]);
+    const sig = s.match(/\/storage\/v1\/object\/sign\/chat-images\/(.+?)(?:\?|$)/);
+    if (sig) return decodeURIComponent(sig[1]);
+    if (!/^https?:\/\//i.test(s) && s.includes("/")) return s.split("?")[0];
+    return null;
+}
+
+const _chatImgSignedCache = Object.create(null);
+
+/** Signed URL cho bucket chat-images private (cache ~50 phút) */
+async function resolveChatImageUrl(ref, expiresIn) {
+    expiresIn = expiresIn || 3600;
+    if (!ref) return null;
+    const s = String(ref).trim();
+    const path = parseChatImageRef(s);
+    if (!path) {
+        if (/^https?:\/\//i.test(s)) return s;
+        return null;
+    }
+    if (!window.supabaseClient) return null;
+    const now = Date.now();
+    const hit = _chatImgSignedCache[path];
+    if (hit && hit.exp > now + 60000) return hit.url;
+    try {
+        const { data, error } = await window.supabaseClient.storage
+            .from("chat-images")
+            .createSignedUrl(path, expiresIn);
+        if (error || !data || !data.signedUrl) {
+            console.warn("[ZChat] createSignedUrl chat-images:", error && error.message);
+            return /^https?:\/\//i.test(s) ? s : null;
+        }
+        _chatImgSignedCache[path] = { url: data.signedUrl, exp: now + expiresIn * 1000 };
+        return data.signedUrl;
+    } catch (e) {
+        console.warn("[ZChat] resolveChatImageUrl:", e);
+        return /^https?:\/\//i.test(s) ? s : null;
+    }
+}
+
+/** Gán src signed cho mọi img[data-chat-image-ref] */
+async function hydrateChatImages(root) {
+    const scope = root || document;
+    const nodes = scope.querySelectorAll("img[data-chat-image-ref]");
+    if (!nodes.length) return;
+    await Promise.all(Array.from(nodes).map(async (img) => {
+        const ref = img.getAttribute("data-chat-image-ref");
+        if (!ref) return;
+        const url = await resolveChatImageUrl(ref);
+        if (url) {
+            img.src = url;
+            img.setAttribute("data-full-src", url);
+        }
+    }));
+}
+
 function renderMessages(chat) {
     const msgs = chat.messages;
     messageFeed.innerHTML = "";
@@ -15,7 +86,6 @@ function renderMessages(chat) {
         return;
     }
 
-    // Seen chỉ hiện dưới tin nhắn cuối cùng của mình
     let lastMineIdx = -1;
     for (let k = msgs.length - 1; k >= 0; k--) {
         if (msgs[k].senderId === "me") { lastMineIdx = k; break; }
@@ -54,7 +124,6 @@ function renderMessages(chat) {
             ? "background-color: var(--ink); color: var(--canvas);"
             : "background-color: var(--elevated); color: var(--ink);";
 
-        // Tách phần "đang trả lời tin nhắn nào" ra khỏi nội dung thật
         const { replyId, replySender, replyPreview, body } = parseReply(msg.text || "");
 
         let contentHtml = "";
@@ -62,15 +131,14 @@ function renderMessages(chat) {
         if (body) {
             if (body.startsWith("[IMAGE]:")) {
                 isImageMsg = true;
-                const imgUrl = body.replace("[IMAGE]:", "");
-                contentHtml = `<img src="${imgUrl}" class="msg-image block rounded-2xl max-w-[260px] max-h-[300px] object-cover cursor-pointer hover:opacity-95 transition-opacity" data-full-src="${imgUrl}" />`;
+                const imgRef = body.replace("[IMAGE]:", "").trim();
+                contentHtml = `<img src="" data-chat-image-ref="${escapeHtml(imgRef)}" class="msg-image block rounded-2xl max-w-[260px] max-h-[300px] object-cover cursor-pointer hover:opacity-95 transition-opacity bg-elevated2" data-full-src="" alt="Photo" />`;
             } else {
                 contentHtml = escapeHtml(body) + (msg.isEdited ? ` <span class="text-[10px] opacity-60 font-normal">(edited)</span>` : "");
             }
         }
 
         let shortReplyPrev = String(replyPreview || "").replace(/\s+/g, " ").trim();
-        // Rút gọn để mobile không mất chữ
         const replyMax = 28;
         if (shortReplyPrev.length > replyMax) shortReplyPrev = shortReplyPrev.slice(0, replyMax).trimEnd() + "…";
 
@@ -85,7 +153,7 @@ function renderMessages(chat) {
                             <span class="msg-reply-image-icon" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"></polyline><path d="M20 20v-7a4 4 0 0 0-4-4H4"></path></svg></span>
                             <span class="msg-reply-image-name">${escapeHtml(replyNameLabel)}</span>
                         </div>
-                        <img src="${escapeHtml(replyImgUrl)}" class="msg-reply-thumb" alt="Photo" loading="lazy" />
+                        <img src="" data-chat-image-ref="${escapeHtml(replyImgUrl)}" class="msg-reply-thumb" alt="Photo" loading="lazy" />
                     </div>`;
             } else {
                 replyQuoteHtml = `<div class="msg-reply-quote flex flex-col gap-0.5 mb-1" data-reply-target="${escapeHtml(String(replyId))}">
@@ -95,7 +163,6 @@ function renderMessages(chat) {
             }
         }
 
-        // Nút menu 3 chấm — luôn hiện (mờ), rõ hơn khi hover / touch
         const menuBtnHtml = `
                 <button type="button" class="btn-msg-menu absolute top-1/2 -translate-y-1/2 ${isMine ? "-left-9" : "-right-9"} flex h-7 w-7 items-center justify-center rounded-full opacity-50 hover:opacity-100 hover:bg-elevated2 transition-all z-10" style="color: var(--muted);" title="More">
                     <i data-lucide="more-horizontal" class="w-4 h-4"></i>
@@ -112,7 +179,6 @@ function renderMessages(chat) {
             ? `<i data-lucide="timer" class="w-[11px] h-[11px] shrink-0" style="color: var(--faint); opacity: 0.85;" title="Disappearing message"></i>`
             : "";
 
-        // Chỉ tin cuối mình gửi mới hiện Seen
         const seenHtml = (isMine && i === lastMineIdx) ? statusIconMarkup(msg.status) : "";
         const metaInner = `${timerIcon}${seenHtml}`;
         const hasMetaContent = !!timerIcon || !!seenHtml;
@@ -137,7 +203,6 @@ function renderMessages(chat) {
             btnMenu.addEventListener("click", (e) => {
                 e.stopPropagation();
                 const rect = btnMenu.getBoundingClientRect();
-                // Neo giữa nút 3 chấm — ổn định hơn trên mobile
                 openMessageActionMenu(
                     msg, chat, isMine,
                     rect.left + rect.width / 2,
@@ -148,7 +213,14 @@ function renderMessages(chat) {
 
         const imgEl = wrap.querySelector(".msg-image");
         if (imgEl) {
-            imgEl.addEventListener("click", () => openImageLightbox(imgEl.dataset.fullSrc));
+            imgEl.addEventListener("click", async () => {
+                let url = imgEl.dataset.fullSrc || imgEl.getAttribute("src") || "";
+                const ref = imgEl.getAttribute("data-chat-image-ref");
+                if ((!url || url === "") && ref) {
+                    url = (await resolveChatImageUrl(ref)) || "";
+                }
+                if (url) openImageLightbox(url);
+            });
         }
 
         const quoteEl = wrap.querySelector(".msg-reply-quote");
@@ -159,7 +231,6 @@ function renderMessages(chat) {
             });
         }
 
-        // Nhấn giữ (long-press) trên mobile để mở menu ngay tại điểm chạm
         const pressable = wrap.querySelector(".msg-bubble-pressable");
         if (pressable) {
             let pressTimer = null;
@@ -180,7 +251,6 @@ function renderMessages(chat) {
                 pressTimer = setTimeout(() => {
                     pressable.classList.add("is-pressing");
                     if (navigator.vibrate) { try { navigator.vibrate(12); } catch (_) {} }
-                    // Dùng tọa độ đã lưu — tránh touch object bị reset trên mobile
                     openMessageActionMenu(msg, chat, isMine, pressStartX, pressStartY);
                     clearPress();
                 }, 480);
@@ -202,6 +272,7 @@ function renderMessages(chat) {
     });
 
     messageFeed.scrollTop = messageFeed.scrollHeight;
+    hydrateChatImages(messageFeed).catch(() => {});
     icons();
 }
 
