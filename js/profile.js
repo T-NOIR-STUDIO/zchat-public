@@ -472,11 +472,11 @@
     document.querySelectorAll(".avatar-tab").forEach((tab) => {
         tab.addEventListener("click", () => {
             document.querySelectorAll(".avatar-tab").forEach((t) => {
-                t.style.backgroundColor = "transparent";
-                t.style.color = "var(--muted)";
+                t.classList.remove("is-active");
+                t.style.backgroundColor = "";
+                t.style.color = "";
             });
-            tab.style.backgroundColor = "var(--ink)";
-            tab.style.color = "var(--bubble-sent-text)";
+            tab.classList.add("is-active");
             const isColor = tab.dataset.avatarTab === "color";
             const isEmoji = tab.dataset.avatarTab === "emoji";
             const isPhoto = tab.dataset.avatarTab === "photo";
@@ -488,7 +488,12 @@
             }
         });
     });
-    document.querySelector('.avatar-tab[data-avatar-tab="' + (saved.avatarType === "photo" ? "photo" : saved.avatarType === "emoji" ? "emoji" : "color") + '"]').click();
+    const initialTab = document.querySelector(
+        '.avatar-tab[data-avatar-tab="' +
+        (saved.avatarType === "photo" ? "photo" : saved.avatarType === "emoji" ? "emoji" : "color") +
+        '"]'
+    );
+    if (initialTab) initialTab.click();
 
     /* ============ AVATAR PHOTO UPLOAD (Supabase Storage: bucket "avatars") ============ */
     const MAX_AVATAR_BYTES = 5 * 1024 * 1024; // 5MB
