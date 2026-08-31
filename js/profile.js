@@ -4,7 +4,6 @@
     /* ============ I18N DICTIONARY (EN, VI, ZH, RU) ============ */
     const i18n = {
         en: {
-            backToChat: "Back to Chat",
             editProfile: "Edit Profile",
             changeAvatar: "Change avatar",
             colorTab: "Color",
@@ -29,7 +28,6 @@
             successToast: "Profile updated successfully!"
         },
         vi: {
-            backToChat: "Quay lại Chat",
             editProfile: "Chỉnh sửa hồ sơ",
             changeAvatar: "Đổi ảnh đại diện",
             colorTab: "Màu sắc",
@@ -54,7 +52,6 @@
             successToast: "Cập nhật hồ sơ thành công!"
         },
         zh: {
-            backToChat: "返回聊天",
             editProfile: "编辑个人资料",
             changeAvatar: "更换头像",
             colorTab: "颜色",
@@ -79,7 +76,6 @@
             successToast: "个人资料更新成功！"
         },
         ru: {
-            backToChat: "Назад в чат",
             editProfile: "Редактировать профиль",
             changeAvatar: "Сменить аватар",
             colorTab: "Цвет",
@@ -108,9 +104,6 @@
     function applyLanguage() {
         const lang = localStorage.getItem("zchat_lang") || "en";
         const dict = i18n[lang] || i18n.en;
-
-        const backBtn = document.getElementById("backToChatBtn") || document.querySelector("header a");
-        if (backBtn) backBtn.setAttribute("aria-label", dict.backToChat || "Back");
 
         const headerTitle = document.querySelector("header h1");
         if (headerTitle) headerTitle.textContent = dict.editProfile;
@@ -318,10 +311,43 @@
     const PRESENCE_COLORS = { online: "var(--online)", away: "var(--away)", dnd: "var(--dnd)" };
 
     /* ============ RENDER ============ */
+    function parseAvatarStoragePath(ref) {
+        if (!ref) return null;
+        const s = String(ref).trim();
+        if (s.startsWith("storage:avatars/")) return s.slice("storage:avatars/".length).split("?")[0];
+        if (s.startsWith("storage:")) {
+            const rest = s.slice(8);
+            const i = rest.indexOf("/");
+            if (i > 0 && rest.slice(0, i) === "avatars") return rest.slice(i + 1).split("?")[0];
+        }
+        const pub = s.match(/\/storage\/v1\/object\/public\/avatars\/(.+?)(?:\?|$)/);
+        if (pub) return decodeURIComponent(pub[1]);
+        const sig = s.match(/\/storage\/v1\/object\/sign\/avatars\/(.+?)(?:\?|$)/);
+        if (sig) return decodeURIComponent(sig[1]);
+        return null;
+    }
+    async function resolveAvatarDisplayUrl(ref) {
+        if (!ref) return null;
+        const s = String(ref).trim();
+        const path = parseAvatarStoragePath(s);
+        if (path && window.supabaseClient) {
+            try {
+                const { data, error } = await window.supabaseClient.storage
+                    .from("avatars").createSignedUrl(path, 3600 * 24 * 7);
+                if (!error && data && data.signedUrl) return data.signedUrl;
+            } catch (e) { console.warn("[ZChat] avatar signed URL:", e); }
+        }
+        if (/^https?:\/\//i.test(s)) return s;
+        return null;
+    }
     function renderAvatarPreview() {
         if (draft.avatarType === "photo" && draft.avatarUrl) {
             avatarPreview.style.backgroundColor = "var(--elevated2)";
-            avatarPreview.innerHTML = `<img src="${draft.avatarUrl}" alt="Avatar" class="h-full w-full rounded-full object-cover" />`;
+            avatarPreview.innerHTML = `<img src="" alt="Avatar" class="h-full w-full rounded-full object-cover" />`;
+            resolveAvatarDisplayUrl(String(draft.avatarUrl)).then((url) => {
+                const img = avatarPreview.querySelector("img");
+                if (img && url) img.src = url;
+            });
         } else {
             avatarPreview.style.backgroundColor = draft.avatarType === "emoji" ? "var(--elevated2)" : draft.avatarColor;
             avatarPreview.textContent = draft.avatarType === "emoji" ? draft.avatarEmoji : initials(draft.username || savedUsername);
@@ -408,6 +434,9 @@
 
     /* ============ INIT FORM VALUES ============ */
     usernameField.value = saved.username;
+    usernameField.readOnly = true;
+    usernameField.disabled = true;
+    usernameField.title = "Username cannot be changed";
     if (bioField) bioField.value = saved.bio;
     buildColorSwatches();
     buildEmojiSwatches();
@@ -440,42 +469,26 @@
         }
     });
 
-    function activateAvatarTab(tab) {
-        if (!tab) return;
-        document.querySelectorAll(".avatar-tab").forEach((t) => {
-            t.classList.remove("is-active");
-            t.style.backgroundColor = "";
-            t.style.color = "";
-        });
-        tab.classList.add("is-active");
-        // Màu rõ ràng — không dùng bubble-sent-text (gây trắng bốc)
-        tab.style.backgroundColor = "#1c9bf0";
-        tab.style.color = "#ffffff";
-        const isColor = tab.dataset.avatarTab === "color";
-        const isEmoji = tab.dataset.avatarTab === "emoji";
-        const isPhoto = tab.dataset.avatarTab === "photo";
-        if (colorSwatches) {
-            colorSwatches.classList.toggle("hidden", !isColor);
-            colorSwatches.style.backgroundColor = "transparent";
-        }
-        if (emojiSwatches) {
-            emojiSwatches.classList.toggle("hidden", !isEmoji);
-            emojiSwatches.style.backgroundColor = "transparent";
-        }
-        if (photoPanel) {
-            photoPanel.classList.toggle("hidden", !isPhoto);
-            photoPanel.classList.toggle("flex", isPhoto);
-            photoPanel.style.backgroundColor = "transparent";
-        }
-    }
     document.querySelectorAll(".avatar-tab").forEach((tab) => {
-        tab.addEventListener("click", () => activateAvatarTab(tab));
+        tab.addEventListener("click", () => {
+            document.querySelectorAll(".avatar-tab").forEach((t) => {
+                t.style.backgroundColor = "transparent";
+                t.style.color = "var(--muted)";
+            });
+            tab.style.backgroundColor = "var(--ink)";
+            tab.style.color = "var(--bubble-sent-text)";
+            const isColor = tab.dataset.avatarTab === "color";
+            const isEmoji = tab.dataset.avatarTab === "emoji";
+            const isPhoto = tab.dataset.avatarTab === "photo";
+            colorSwatches.classList.toggle("hidden", !isColor);
+            emojiSwatches.classList.toggle("hidden", !isEmoji);
+            if (photoPanel) {
+                photoPanel.classList.toggle("hidden", !isPhoto);
+                photoPanel.classList.toggle("flex", isPhoto);
+            }
+        });
     });
-    {
-        const key = saved.avatarType === "photo" ? "photo" : saved.avatarType === "emoji" ? "emoji" : "color";
-        const initial = document.querySelector('.avatar-tab[data-avatar-tab="' + key + '"]');
-        activateAvatarTab(initial);
-    }
+    document.querySelector('.avatar-tab[data-avatar-tab="' + (saved.avatarType === "photo" ? "photo" : saved.avatarType === "emoji" ? "emoji" : "color") + '"]').click();
 
     /* ============ AVATAR PHOTO UPLOAD (Supabase Storage: bucket "avatars") ============ */
     const MAX_AVATAR_BYTES = 5 * 1024 * 1024; // 5MB
@@ -552,24 +565,15 @@
 
                 if (uploadErr) throw uploadErr;
 
-                const { data: publicUrlData } = window.supabaseClient
-                    .storage
-                    .from("avatars")
-                    .getPublicUrl(path);
-
-                const publicUrl = publicUrlData && publicUrlData.publicUrl;
-                if (!publicUrl) throw new Error("Could not get public URL");
-
-                // Lưu URL kèm version → mọi thiết bị load ảnh mới
-                const versionedUrl = `${publicUrl}?v=${Date.now()}`;
+                const storageRef = "storage:avatars/" + path;
                 draft.avatarType = "photo";
-                draft.avatarUrl = versionedUrl;
+                draft.avatarUrl = storageRef;
                 renderAvatarPreview();
                 avatarPopover.classList.add("hidden");
 
                 const ok = await syncAvatarToAccount({
                     avatar_type: "photo",
-                    avatar_url: versionedUrl,
+                    avatar_url: storageRef,
                     avatar_color: null,
                     avatar_emoji: null,
                 });
@@ -617,12 +621,9 @@
 
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
-        const name = usernameField.value.trim();
-        if (!name) {
-            usernameError.classList.remove("hidden");
-            usernameField.focus();
-            return;
-        }
+        // Username khóa — không cho đổi
+        const name = savedUsername;
+        usernameError.classList.add("hidden");
 
         localStorage.setItem("zchat_bio", (bioField && bioField.value.trim()) || draft.bio || "Available");
         localStorage.setItem("zchat_presence", draft.presence);
@@ -631,31 +632,6 @@
         localStorage.setItem("zchat_avatar_emoji", draft.avatarEmoji);
         localStorage.setItem("zchat_avatar_url", draft.avatarUrl || "");
         localStorage.setItem("zchat_theme", draft.theme);
-
-        // Đổi username lên Supabase (nếu có thay đổi) — dùng RPC rename_username
-        // để tự động migrate luôn sender_username + chat_id của tin nhắn cũ
-        const usernameChanged = savedUsername && name.toLowerCase() !== savedUsername.toLowerCase();
-        if (usernameChanged && window.supabaseClient) {
-            try {
-                const { data: renamedRows, error: renameErr } = await window.supabaseClient
-                    .rpc("rename_username", { p_new_username: name });
-
-                if (renameErr) {
-                    console.error("[ZChat] rename_username error:", renameErr);
-                    usernameError.textContent = renameErr.message || "Could not change username.";
-                    usernameError.classList.remove("hidden");
-                    return; // đừng lưu localStorage với username mới nếu server từ chối
-                }
-                console.log("[ZChat] Username renamed on server:", renamedRows);
-            } catch (err) {
-                console.error("[ZChat] rename_username exception:", err);
-                usernameError.textContent = "Could not change username. Please try again.";
-                usernameError.classList.remove("hidden");
-                return;
-            }
-        }
-        usernameError.classList.add("hidden");
-
         localStorage.setItem("zchat_username", name);
 
         // Lưu avatar vào tài khoản trên Supabase (đồng bộ PC / điện thoại / trình duyệt)
