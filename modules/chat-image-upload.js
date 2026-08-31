@@ -2,7 +2,7 @@
  * 20-chat-image-upload.js
  * Upload/nén ảnh gửi trong chat lên Supabase Storage. Phụ thuộc: 03, 04, 19.
  * ============================================================ */
-const MAX_CHAT_IMAGE_BYTES = 50 * 1024 * 1024; // >50MB → nén
+const MAX_CHAT_IMAGE_BYTES = 3 * 1024 * 1024; // >50MB → nén
 
 function isAllowedChatImage(file) {
     if (!file) return false;
