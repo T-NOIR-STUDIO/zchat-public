@@ -217,13 +217,13 @@ function renderMessages(chat, opts) {
                 ? `<div class="flex items-center gap-1 px-1 text-[11px]" style="color: var(--faint);">${timerIcon}</div>`
                 : "");
 
-        // Menu 3 chấm neo theo bong bóng/ảnh — không tính khối Seen (meta)
+        // Menu 3 chấm CHỈ neo theo bubble text (không theo reply ảnh)
         wrap.innerHTML = `
         <div class="flex max-w-[72%] min-w-0 flex-col gap-1.5 ${isMine ? "items-end" : "items-start"}">
+          ${replyThumbHtml}
           <div class="relative">
             ${menuBtnHtml}
             ${attachmentHtml}
-            ${replyThumbHtml}
             ${bubble}
           </div>
           ${meta}
