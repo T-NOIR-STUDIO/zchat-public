@@ -57,7 +57,7 @@ async function resolveChatImageUrl(ref, expiresIn) {
     }
 }
 
-/** Gán src signed cho mọi img[data-chat-image-ref] */
+/** Gán src signed + đợi ảnh load xong (tránh scroll đáy sớm rồi bị văng khi ảnh cao ra) */
 async function hydrateChatImages(root) {
     const scope = root || document;
     const nodes = scope.querySelectorAll("img[data-chat-image-ref]");
@@ -66,14 +66,41 @@ async function hydrateChatImages(root) {
         const ref = img.getAttribute("data-chat-image-ref");
         if (!ref) return;
         const url = await resolveChatImageUrl(ref);
-        if (url) {
+        if (!url) return;
+        await new Promise((resolve) => {
+            let done = false;
+            const finish = () => {
+                if (done) return;
+                done = true;
+                resolve();
+            };
+            img.onload = finish;
+            img.onerror = finish;
             img.src = url;
             img.setAttribute("data-full-src", url);
-        }
+            // cache hit / đã decode
+            if (img.complete && img.naturalWidth > 0) finish();
+            // an toàn: không treo mãi
+            setTimeout(finish, 8000);
+        });
     }));
 }
 
-function renderMessages(chat) {
+/** Cuộn messageFeed xuống tin cuối */
+function scrollMessageFeedToBottom() {
+    if (!messageFeed) return;
+    try {
+        messageFeed.scrollTop = messageFeed.scrollHeight;
+    } catch (_) {}
+}
+
+/**
+ * @param {object} chat
+ * @param {{ preserveScroll?: boolean, scrollTop?: number }} [opts]
+ */
+function renderMessages(chat, opts) {
+    opts = opts || {};
+
     const msgs = chat.messages;
     messageFeed.innerHTML = "";
 
@@ -165,7 +192,7 @@ function renderMessages(chat) {
         }
 
         const menuBtnHtml = `
-                <button type="button" class="btn-msg-menu absolute top-1/2 -translate-y-1/2 ${isMine ? "-left-9" : "-right-9"} flex h-7 w-7 items-center justify-center rounded-full opacity-50 hover:opacity-100 hover:bg-elevated2 transition-all z-10" style="color: var(--muted);" title="More">
+                <button type="button" class="btn-msg-menu absolute top-1/2 -translate-y-1/2 ${isMine ? "-left-9" : "-right-9"} flex h-7 w-7 items-center justify-center rounded-full opacity-50 hover:opacity-100 hover:bg-elevated2 transition-all z-0" style="color: var(--muted);" title="More">
                     <i data-lucide="more-horizontal" class="w-4 h-4"></i>
                 </button>`;
 
@@ -275,8 +302,36 @@ function renderMessages(chat) {
         messageFeed.appendChild(wrap);
     });
 
-    messageFeed.scrollTop = messageFeed.scrollHeight;
-    hydrateChatImages(messageFeed).catch(() => {});
+    const preserve = !!(opts && opts.preserveScroll);
+    const savedTop = (opts && typeof opts.scrollTop === "number") ? opts.scrollTop : null;
+
+    if (preserve) {
+        // Xóa tin lúc đang lướt trên → giữ vị trí
+        const apply = () => {
+            if (messageFeed && savedTop != null) messageFeed.scrollTop = savedTop;
+        };
+        apply();
+        requestAnimationFrame(apply);
+        hydrateChatImages(messageFeed).catch(() => {}).finally(apply);
+    } else {
+        // Mở chat: stick đáy — cuộn sau render, sau frame, SAU khi ảnh load xong
+        scrollMessageFeedToBottom();
+        requestAnimationFrame(() => {
+            scrollMessageFeedToBottom();
+            requestAnimationFrame(scrollMessageFeedToBottom);
+        });
+        hydrateChatImages(messageFeed)
+            .catch(() => {})
+            .finally(() => {
+                scrollMessageFeedToBottom();
+                requestAnimationFrame(() => {
+                    scrollMessageFeedToBottom();
+                    // 1 nhịp layout cuối (font/ảnh decode)
+                    setTimeout(scrollMessageFeedToBottom, 50);
+                    setTimeout(scrollMessageFeedToBottom, 200);
+                });
+            });
+    }
     icons();
 }
 
