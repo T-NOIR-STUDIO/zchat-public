@@ -186,8 +186,18 @@ function subscribeToMessages() {
                                 getVerifiedBadge(!!chat.participant.isVerified);
                         }
                         markChatAsRead(chat.id);
+                        if (!isMineMsg && document.visibilityState !== "visible") {
+                            const from = (chat.participant && chat.participant.name) || "Someone";
+                            if (window.ZChatPush && window.ZChatPush.notifyLocal) {
+                                window.ZChatPush.notifyLocal(from);
+                            }
+                        }
                     } else if (!isMineMsg) {
                         chat.unread = (chat.unread || 0) + 1;
+                        const from = (chat.participant && chat.participant.name) || "Someone";
+                        if (window.ZChatPush && window.ZChatPush.notifyLocal) {
+                            window.ZChatPush.notifyLocal(from);
+                        }
                     }
                     renderChatList();
                 } catch (err) {
