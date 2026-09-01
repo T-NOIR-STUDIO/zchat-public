@@ -86,30 +86,9 @@
     80% { transform: translateX(5px); }
 }
 
-
-/* 3 chấm ngang — màu theo theme */
-.btn-msg-menu {
-    z-index: 1;
-    color: #ffffff;
-}
-html[data-theme="light"] .btn-msg-menu,
-[data-theme="light"] .btn-msg-menu {
-    color: #3f3f46;
-}
-
-/* Text box / composer luôn nằm trên bong bóng + nút 3 chấm khi scroll */
-#activeChat {
-    position: relative;
-}
-#messageFeed {
-    position: relative;
-    z-index: 0;
-}
-#composerBar {
-    position: absolute !important;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 50 !important;
-    pointer-events: auto;
+/* Delete message fade only */
+.msg-removing {
+    opacity: 0 !important;
+    transition: opacity 0.28s ease !important;
+    pointer-events: none !important;
 }
