@@ -57,9 +57,9 @@ async function resolveChatImageUrl(ref, expiresIn) {
     }
 }
 
-/** Đợi 1 thẻ img decode/load xong (hoặc lỗi / timeout) */
+/** Đợi 1 thẻ img load/decode (timeout ngắn — tránh treo loading) */
 function waitImgLoaded(img, timeoutMs) {
-    timeoutMs = timeoutMs || 12000;
+    timeoutMs = timeoutMs == null ? 3500 : timeoutMs;
     return new Promise((resolve) => {
         let done = false;
         const finish = () => {
@@ -68,42 +68,55 @@ function waitImgLoaded(img, timeoutMs) {
             resolve();
         };
         if (!img) return finish();
-        if (img.complete && img.naturalWidth > 0) {
-            if (img.decode) {
-                img.decode().then(finish).catch(finish);
-            } else finish();
-            return;
-        }
+        const src = (img.getAttribute("src") || "").trim();
+        // Chưa có src / data: trống → không đợi
+        if (!src || src === "about:blank") return finish();
+        if (img.complete && img.naturalWidth > 0) return finish();
+        if (img.complete && img.naturalWidth === 0) return finish(); // broken
         img.addEventListener("load", finish, { once: true });
         img.addEventListener("error", finish, { once: true });
         setTimeout(finish, timeoutMs);
     });
 }
 
-/** Gán src signed + đợi từng ảnh load/decode xong */
+/** Gán src signed + đợi load (mỗi ảnh tối đa ~3.5s) */
 async function hydrateChatImages(root) {
     const scope = root || document;
-    const nodes = scope.querySelectorAll("img[data-chat-image-ref]");
+    const nodes = Array.from(scope.querySelectorAll("img[data-chat-image-ref]"));
     if (!nodes.length) return;
-    await Promise.all(Array.from(nodes).map(async (img) => {
+
+    // Resolve URL song song trước
+    const urls = await Promise.all(nodes.map(async (img) => {
         const ref = img.getAttribute("data-chat-image-ref");
-        if (!ref) return;
-        const url = await resolveChatImageUrl(ref);
+        if (!ref) return null;
+        try { return await resolveChatImageUrl(ref); } catch (_) { return null; }
+    }));
+
+    await Promise.all(nodes.map(async (img, i) => {
+        const url = urls[i];
         if (!url) return;
-        if (img.getAttribute("src") !== url) {
-            img.src = url;
-        }
+        if (img.getAttribute("src") !== url) img.src = url;
         img.setAttribute("data-full-src", url);
-        await waitImgLoaded(img, 12000);
+        await waitImgLoaded(img, 3500);
     }));
 }
 
-/** Đợi mọi img trong feed (kể cả đã có src) */
+/** Chỉ đợi img đã có src thật */
 async function waitAllFeedImages(root) {
     const scope = root || document;
-    const imgs = scope.querySelectorAll("img");
+    const imgs = Array.from(scope.querySelectorAll("img")).filter((img) => {
+        const src = (img.getAttribute("src") || "").trim();
+        return !!src && src !== "about:blank";
+    });
     if (!imgs.length) return;
-    await Promise.all(Array.from(imgs).map((img) => waitImgLoaded(img, 12000)));
+    await Promise.all(imgs.map((img) => waitImgLoaded(img, 3500)));
+}
+
+function withTimeout(promise, ms) {
+    return Promise.race([
+        promise,
+        new Promise((resolve) => setTimeout(resolve, ms)),
+    ]);
 }
 
 /** Overlay loading — không bị renderMessages xóa (nằm ngoài #messageFeed) */
@@ -157,12 +170,19 @@ function hideChatFeedLoading() {
     if (el) el.remove();
 }
 
-/** Render + hydrate + đợi mọi ảnh xong rồi mới resolve */
+/** Render + hydrate ảnh; tối đa ~6s rồi thôi (không treo loading) */
 async function renderMessagesUntilImagesReady(chat, opts) {
+    opts = opts || {};
+    opts.skipAutoHydrate = true;
     renderMessages(chat, opts);
     try {
-        await hydrateChatImages(messageFeed);
-        await waitAllFeedImages(messageFeed);
+        await withTimeout(
+            (async () => {
+                await hydrateChatImages(messageFeed);
+                await waitAllFeedImages(messageFeed);
+            })(),
+            6000
+        );
     } catch (_) {}
     if (typeof scrollMessageFeedToBottom === "function") {
         try { scrollMessageFeedToBottom(); } catch (_) {}
@@ -301,13 +321,13 @@ function renderMessages(chat, opts) {
                 ? `<div class="flex items-center gap-1 px-1 text-[11px]" style="color: var(--faint);">${timerIcon}</div>`
                 : "");
 
-        // Menu 3 chấm neo theo bong bóng/ảnh — không tính khối Seen (meta)
+        // Menu 3 chấm chỉ neo giữa bubble tin nhắn (text/ảnh gửi) — không kèm reply thumb / attachment / Seen
         wrap.innerHTML = `
         <div class="flex max-w-[72%] min-w-0 flex-col gap-1.5 ${isMine ? "items-end" : "items-start"}">
+          ${attachmentHtml}
+          ${replyThumbHtml}
           <div class="relative">
             ${menuBtnHtml}
-            ${attachmentHtml}
-            ${replyThumbHtml}
             ${bubble}
           </div>
           ${meta}
@@ -390,31 +410,32 @@ function renderMessages(chat, opts) {
     const savedTop = (opts && typeof opts.scrollTop === "number") ? opts.scrollTop : null;
 
     if (preserve) {
-        // Xóa tin lúc đang lướt trên → giữ vị trí
         const apply = () => {
             if (messageFeed && savedTop != null) messageFeed.scrollTop = savedTop;
         };
         apply();
         requestAnimationFrame(apply);
-        hydrateChatImages(messageFeed).catch(() => {}).finally(apply);
+        if (!opts.skipAutoHydrate) {
+            hydrateChatImages(messageFeed).catch(() => {}).finally(apply);
+        } else apply();
     } else {
-        // Mở chat: stick đáy — cuộn sau render, sau frame, SAU khi ảnh load xong
         scrollMessageFeedToBottom();
         requestAnimationFrame(() => {
             scrollMessageFeedToBottom();
             requestAnimationFrame(scrollMessageFeedToBottom);
         });
-        hydrateChatImages(messageFeed)
-            .catch(() => {})
-            .finally(() => {
-                scrollMessageFeedToBottom();
-                requestAnimationFrame(() => {
+        if (!opts.skipAutoHydrate) {
+            hydrateChatImages(messageFeed)
+                .catch(() => {})
+                .finally(() => {
                     scrollMessageFeedToBottom();
-                    // 1 nhịp layout cuối (font/ảnh decode)
-                    setTimeout(scrollMessageFeedToBottom, 50);
-                    setTimeout(scrollMessageFeedToBottom, 200);
+                    requestAnimationFrame(() => {
+                        scrollMessageFeedToBottom();
+                        setTimeout(scrollMessageFeedToBottom, 50);
+                        setTimeout(scrollMessageFeedToBottom, 200);
+                    });
                 });
-            });
+        }
     }
     icons();
 }
