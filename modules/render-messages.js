@@ -57,7 +57,30 @@ async function resolveChatImageUrl(ref, expiresIn) {
     }
 }
 
-/** Gán src signed + đợi ảnh load xong (tránh scroll đáy sớm rồi bị văng khi ảnh cao ra) */
+/** Đợi 1 thẻ img decode/load xong (hoặc lỗi / timeout) */
+function waitImgLoaded(img, timeoutMs) {
+    timeoutMs = timeoutMs || 12000;
+    return new Promise((resolve) => {
+        let done = false;
+        const finish = () => {
+            if (done) return;
+            done = true;
+            resolve();
+        };
+        if (!img) return finish();
+        if (img.complete && img.naturalWidth > 0) {
+            if (img.decode) {
+                img.decode().then(finish).catch(finish);
+            } else finish();
+            return;
+        }
+        img.addEventListener("load", finish, { once: true });
+        img.addEventListener("error", finish, { once: true });
+        setTimeout(finish, timeoutMs);
+    });
+}
+
+/** Gán src signed + đợi từng ảnh load/decode xong */
 async function hydrateChatImages(root) {
     const scope = root || document;
     const nodes = scope.querySelectorAll("img[data-chat-image-ref]");
@@ -67,24 +90,85 @@ async function hydrateChatImages(root) {
         if (!ref) return;
         const url = await resolveChatImageUrl(ref);
         if (!url) return;
-        await new Promise((resolve) => {
-            let done = false;
-            const finish = () => {
-                if (done) return;
-                done = true;
-                resolve();
-            };
-            img.onload = finish;
-            img.onerror = finish;
+        if (img.getAttribute("src") !== url) {
             img.src = url;
-            img.setAttribute("data-full-src", url);
-            // cache hit / đã decode
-            if (img.complete && img.naturalWidth > 0) finish();
-            // an toàn: không treo mãi
-            setTimeout(finish, 8000);
-        });
+        }
+        img.setAttribute("data-full-src", url);
+        await waitImgLoaded(img, 12000);
     }));
 }
+
+/** Đợi mọi img trong feed (kể cả đã có src) */
+async function waitAllFeedImages(root) {
+    const scope = root || document;
+    const imgs = scope.querySelectorAll("img");
+    if (!imgs.length) return;
+    await Promise.all(Array.from(imgs).map((img) => waitImgLoaded(img, 12000)));
+}
+
+/** Overlay loading — không bị renderMessages xóa (nằm ngoài #messageFeed) */
+function ensureChatLoadStyle() {
+    if (document.getElementById("zchatChatLoadStyle")) return;
+    const s = document.createElement("style");
+    s.id = "zchatChatLoadStyle";
+    s.textContent = `
+@keyframes zchatChatSpin { to { transform: rotate(360deg); } }
+#chatFeedLoadingOverlay {
+  position: absolute; inset: 0; z-index: 30;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; padding: 2rem 1rem;
+  background: var(--canvas, #0a0a0a);
+}
+#chatFeedLoadingOverlay .chat-load-spinner {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2.5px solid rgba(127,127,127,0.25);
+  border-top-color: var(--ink, #fff);
+  animation: zchatChatSpin 0.7s linear infinite;
+}
+#chatFeedLoadingOverlay p {
+  margin: 0; font-size: 12px; color: var(--muted); font-weight: 500;
+}
+`;
+    document.head.appendChild(s);
+}
+
+function showChatFeedLoading() {
+    if (!messageFeed) return;
+    ensureChatLoadStyle();
+    const host = messageFeed.parentElement || messageFeed;
+    const prev = window.getComputedStyle(host).position;
+    if (prev === "static" || !prev) host.style.position = "relative";
+    let el = document.getElementById("chatFeedLoadingOverlay");
+    if (!el) {
+        el = document.createElement("div");
+        el.id = "chatFeedLoadingOverlay";
+        el.setAttribute("aria-busy", "true");
+        el.setAttribute("aria-live", "polite");
+        el.innerHTML =
+            '<div class="chat-load-spinner" role="status"></div>' +
+            "<p>Loading chat…</p>";
+        host.appendChild(el);
+    }
+    el.style.display = "flex";
+}
+
+function hideChatFeedLoading() {
+    const el = document.getElementById("chatFeedLoadingOverlay");
+    if (el) el.remove();
+}
+
+/** Render + hydrate + đợi mọi ảnh xong rồi mới resolve */
+async function renderMessagesUntilImagesReady(chat, opts) {
+    renderMessages(chat, opts);
+    try {
+        await hydrateChatImages(messageFeed);
+        await waitAllFeedImages(messageFeed);
+    } catch (_) {}
+    if (typeof scrollMessageFeedToBottom === "function") {
+        try { scrollMessageFeedToBottom(); } catch (_) {}
+    }
+}
+
 
 /** Cuộn messageFeed xuống tin cuối */
 function scrollMessageFeedToBottom() {
@@ -217,13 +301,13 @@ function renderMessages(chat, opts) {
                 ? `<div class="flex items-center gap-1 px-1 text-[11px]" style="color: var(--faint);">${timerIcon}</div>`
                 : "");
 
-        // Menu 3 chấm CHỈ neo theo bubble text (không theo reply ảnh)
+        // Menu 3 chấm neo theo bong bóng/ảnh — không tính khối Seen (meta)
         wrap.innerHTML = `
         <div class="flex max-w-[72%] min-w-0 flex-col gap-1.5 ${isMine ? "items-end" : "items-start"}">
-          ${replyThumbHtml}
           <div class="relative">
             ${menuBtnHtml}
             ${attachmentHtml}
+            ${replyThumbHtml}
             ${bubble}
           </div>
           ${meta}
