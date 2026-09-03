@@ -57,66 +57,90 @@ async function resolveChatImageUrl(ref, expiresIn) {
     }
 }
 
-/** Đợi 1 thẻ img load/decode (timeout ngắn — tránh treo loading) */
-function waitImgLoaded(img, timeoutMs) {
-    timeoutMs = timeoutMs == null ? 3500 : timeoutMs;
-    return new Promise((resolve) => {
-        let done = false;
-        const finish = () => {
-            if (done) return;
-            done = true;
-            resolve();
-        };
-        if (!img) return finish();
-        const src = (img.getAttribute("src") || "").trim();
-        // Chưa có src / data: trống → không đợi
-        if (!src || src === "about:blank") return finish();
-        if (img.complete && img.naturalWidth > 0) return finish();
-        if (img.complete && img.naturalWidth === 0) return finish(); // broken
-        img.addEventListener("load", finish, { once: true });
-        img.addEventListener("error", finish, { once: true });
-        setTimeout(finish, timeoutMs);
-    });
+/** CSS load: ảnh gửi = cover; ẢNH REPLY = contain + max 80px (giữ tỷ lệ gốc) */
+function ensureMsgImageLoadStyle() {
+    if (document.getElementById("zchatMsgImageLoadStyle")) return;
+    const s = document.createElement("style");
+    s.id = "zchatMsgImageLoadStyle";
+    s.textContent = `
+.msg-image-wrap{position:relative;display:inline-block;overflow:hidden;border-radius:1rem;line-height:0;max-width:260px}
+.msg-image-wrap .msg-image{display:block;max-width:260px;max-height:300px;width:auto;height:auto;object-fit:cover;transition:filter .35s ease,opacity .35s ease}
+/* REPLY ONLY — không cover, không 260px */
+.msg-image-wrap--reply,.msg-image-wrap:has(.msg-reply-thumb){max-width:80px!important;width:fit-content!important;border-radius:12px}
+.msg-image-wrap .msg-reply-thumb{display:block;width:auto!important;height:auto!important;max-width:80px!important;max-height:80px!important;object-fit:contain!important;object-position:center;transition:filter .35s ease,opacity .35s ease}
+.msg-image-wrap.is-loading .msg-image,.msg-image-wrap.is-loading .msg-reply-thumb{filter:blur(10px);opacity:.65}
+.msg-image-wrap:not(.is-loading) .msg-image,.msg-image-wrap:not(.is-loading) .msg-reply-thumb{filter:none;opacity:1}
+.msg-image-progress{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(0,0,0,.25);pointer-events:none;opacity:0;transition:opacity .2s ease}
+.msg-image-wrap.is-loading .msg-image-progress{opacity:1}
+.msg-image-progress-bar{height:100%;width:0%;background:#1c9bf0;border-radius:0 2px 2px 0}
+.msg-image-wrap.is-loading .msg-image-progress-bar{animation:zchatImgProgress 1.1s ease-in-out infinite}
+@keyframes zchatImgProgress{0%{width:8%}50%{width:70%}100%{width:92%}}
+.msg-image-wrap.is-done .msg-image-progress-bar{animation:none;width:100%;transition:width .2s ease}
+.msg-image-wrap.is-done .msg-image-progress{opacity:0;transition:opacity .35s ease .15s}
+`;
+    document.head.appendChild(s);
 }
 
-/** Gán src signed + đợi load (mỗi ảnh tối đa ~3.5s) */
+function markImgWrapLoading(img) {
+    if (!img) return null;
+    ensureMsgImageLoadStyle();
+    const isReply = img.classList.contains("msg-reply-thumb");
+    let wrap = img.closest(".msg-image-wrap");
+    if (!wrap) {
+        wrap = document.createElement("div");
+        wrap.className = "msg-image-wrap is-loading" + (isReply ? " msg-image-wrap--reply" : "");
+        if (img.parentNode) img.parentNode.insertBefore(wrap, img);
+        wrap.appendChild(img);
+        const bar = document.createElement("div");
+        bar.className = "msg-image-progress";
+        bar.innerHTML = '<div class="msg-image-progress-bar"></div>';
+        wrap.appendChild(bar);
+    } else {
+        wrap.classList.add("is-loading");
+        wrap.classList.remove("is-done");
+        if (isReply) wrap.classList.add("msg-image-wrap--reply");
+    }
+    return wrap;
+}
+
+function markImgWrapDone(img) {
+    const wrap = img && img.closest(".msg-image-wrap");
+    if (!wrap) return;
+    wrap.classList.add("is-done");
+    wrap.classList.remove("is-loading");
+    const bar = wrap.querySelector(".msg-image-progress-bar");
+    if (bar) bar.style.width = "100%";
+    setTimeout(() => { wrap.classList.remove("is-done"); }, 400);
+}
+
 async function hydrateChatImages(root) {
     const scope = root || document;
     const nodes = Array.from(scope.querySelectorAll("img[data-chat-image-ref]"));
     if (!nodes.length) return;
-
-    // Resolve URL song song trước
-    const urls = await Promise.all(nodes.map(async (img) => {
+    ensureMsgImageLoadStyle();
+    await Promise.all(nodes.map(async (img) => {
         const ref = img.getAttribute("data-chat-image-ref");
-        if (!ref) return null;
-        try { return await resolveChatImageUrl(ref); } catch (_) { return null; }
+        if (!ref) return;
+        markImgWrapLoading(img);
+        let url = null;
+        try { url = await resolveChatImageUrl(ref); } catch (_) {}
+        if (!url) { markImgWrapDone(img); return; }
+        await new Promise((resolve) => {
+            let done = false;
+            const finish = () => {
+                if (done) return;
+                done = true;
+                markImgWrapDone(img);
+                resolve();
+            };
+            img.addEventListener("load", finish, { once: true });
+            img.addEventListener("error", finish, { once: true });
+            if (img.getAttribute("src") !== url) img.src = url;
+            img.setAttribute("data-full-src", url);
+            if (img.complete && img.naturalWidth > 0) finish();
+            setTimeout(finish, 8000);
+        });
     }));
-
-    await Promise.all(nodes.map(async (img, i) => {
-        const url = urls[i];
-        if (!url) return;
-        if (img.getAttribute("src") !== url) img.src = url;
-        img.setAttribute("data-full-src", url);
-        await waitImgLoaded(img, 3500);
-    }));
-}
-
-/** Chỉ đợi img đã có src thật */
-async function waitAllFeedImages(root) {
-    const scope = root || document;
-    const imgs = Array.from(scope.querySelectorAll("img")).filter((img) => {
-        const src = (img.getAttribute("src") || "").trim();
-        return !!src && src !== "about:blank";
-    });
-    if (!imgs.length) return;
-    await Promise.all(imgs.map((img) => waitImgLoaded(img, 3500)));
-}
-
-function withTimeout(promise, ms) {
-    return Promise.race([
-        promise,
-        new Promise((resolve) => setTimeout(resolve, ms)),
-    ]);
 }
 
 /** Overlay loading — không bị renderMessages xóa (nằm ngoài #messageFeed) */
@@ -170,23 +194,19 @@ function hideChatFeedLoading() {
     if (el) el.remove();
 }
 
-/** Render + hydrate ảnh; tối đa ~6s rồi thôi (không treo loading) */
 async function renderMessagesUntilImagesReady(chat, opts) {
     opts = opts || {};
     opts.skipAutoHydrate = true;
     renderMessages(chat, opts);
-    try {
-        await withTimeout(
-            (async () => {
-                await hydrateChatImages(messageFeed);
-                await waitAllFeedImages(messageFeed);
-            })(),
-            6000
-        );
-    } catch (_) {}
+    hideChatFeedLoading();
     if (typeof scrollMessageFeedToBottom === "function") {
         try { scrollMessageFeedToBottom(); } catch (_) {}
     }
+    hydrateChatImages(messageFeed).catch(() => {}).finally(() => {
+        if (typeof scrollMessageFeedToBottom === "function") {
+            try { scrollMessageFeedToBottom(); } catch (_) {}
+        }
+    });
 }
 
 
@@ -264,7 +284,7 @@ function renderMessages(chat, opts) {
             if (body.startsWith("[IMAGE]:")) {
                 isImageMsg = true;
                 const imgRef = body.replace("[IMAGE]:", "").trim();
-                contentHtml = `<img src="" data-chat-image-ref="${escapeHtml(imgRef)}" class="msg-image block rounded-2xl max-w-[260px] max-h-[300px] object-cover cursor-pointer hover:opacity-95 transition-opacity bg-elevated2" data-full-src="" alt="Photo" />`;
+                contentHtml = `<div class="msg-image-wrap is-loading"><img src="" data-chat-image-ref="${escapeHtml(imgRef)}" class="msg-image block rounded-2xl max-w-[260px] max-h-[300px] object-cover cursor-pointer hover:opacity-95 bg-elevated2" data-full-src="" alt="Photo" /><div class="msg-image-progress"><div class="msg-image-progress-bar"></div></div></div>`;
             } else {
                 contentHtml = escapeHtml(body) + (msg.isEdited ? ` <span class="text-[10px] opacity-60 font-normal">(edited)</span>` : "");
             }
@@ -285,7 +305,7 @@ function renderMessages(chat, opts) {
                             <span class="msg-reply-image-icon" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"></polyline><path d="M20 20v-7a4 4 0 0 0-4-4H4"></path></svg></span>
                             <span class="msg-reply-image-name">${escapeHtml(replyNameLabel)}</span>
                         </div>
-                        <img src="" data-chat-image-ref="${escapeHtml(replyImgUrl)}" class="msg-reply-thumb" alt="Photo" loading="lazy" />
+                        <div class="msg-image-wrap is-loading msg-image-wrap--reply"><img src="" data-chat-image-ref="${escapeHtml(replyImgUrl)}" class="msg-reply-thumb" alt="Photo" loading="lazy" /><div class="msg-image-progress"><div class="msg-image-progress-bar"></div></div></div>
                     </div>`;
             } else {
                 replyQuoteHtml = `<div class="msg-reply-quote flex flex-col gap-0.5 mb-1" data-reply-target="${escapeHtml(String(replyId))}">
