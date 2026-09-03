@@ -206,7 +206,9 @@ function selectChat(chatId) {
     closeInfoDrawer();
     closeSidebar();
     renderChatList();
-    renderActiveChat();
+    // Chưa load full → hiện loading; đã có full → render luôn
+    const needFull = !!(chat && !chat._msgsFullyLoaded);
+    renderActiveChat({ feedLoading: needFull });
     loadMessagesForChat(chatId);
     markChatAsRead(chatId);
 }
@@ -233,7 +235,8 @@ function statusIconMarkup(status) {
     return `<span class="text-[11px] font-medium" style="color: var(--muted);">Seen</span>`;
 }
 
-function renderActiveChat() {
+function renderActiveChat(opts) {
+    opts = opts || {};
     const chat = state.chats.find((c) => c.id === state.activeChatId);
 
     if (!chat) {
@@ -268,6 +271,10 @@ function renderActiveChat() {
     if (blockScreenshotsToggle) blockScreenshotsToggle.checked = !!chat.blockScreenshots;
     applyScreenshotProtection(chat.blockScreenshots);
 
-    renderMessages(chat);
+    if (opts && opts.feedLoading && typeof showChatFeedLoading === "function") {
+        showChatFeedLoading();
+    } else {
+        renderMessages(chat);
+    }
     icons();
 }
