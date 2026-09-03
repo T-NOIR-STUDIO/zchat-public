@@ -57,26 +57,73 @@ async function resolveChatImageUrl(ref, expiresIn) {
     }
 }
 
-/** CSS load: ảnh gửi = cover; ẢNH REPLY = contain + max 80px (giữ tỷ lệ gốc) */
+/** CSS: ảnh mờ + thanh progress đáy khi đang load */
 function ensureMsgImageLoadStyle() {
     if (document.getElementById("zchatMsgImageLoadStyle")) return;
     const s = document.createElement("style");
     s.id = "zchatMsgImageLoadStyle";
     s.textContent = `
-.msg-image-wrap{position:relative;display:inline-block;overflow:hidden;border-radius:1rem;line-height:0;max-width:260px}
-.msg-image-wrap .msg-image{display:block;max-width:260px;max-height:300px;width:auto;height:auto;object-fit:cover;transition:filter .35s ease,opacity .35s ease}
-/* REPLY ONLY — không cover, không 260px */
-.msg-image-wrap--reply,.msg-image-wrap:has(.msg-reply-thumb){max-width:80px!important;width:fit-content!important;border-radius:12px}
-.msg-image-wrap .msg-reply-thumb{display:block;width:auto!important;height:auto!important;max-width:80px!important;max-height:80px!important;object-fit:contain!important;object-position:center;transition:filter .35s ease,opacity .35s ease}
-.msg-image-wrap.is-loading .msg-image,.msg-image-wrap.is-loading .msg-reply-thumb{filter:blur(10px);opacity:.65}
-.msg-image-wrap:not(.is-loading) .msg-image,.msg-image-wrap:not(.is-loading) .msg-reply-thumb{filter:none;opacity:1}
-.msg-image-progress{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(0,0,0,.25);pointer-events:none;opacity:0;transition:opacity .2s ease}
-.msg-image-wrap.is-loading .msg-image-progress{opacity:1}
-.msg-image-progress-bar{height:100%;width:0%;background:#1c9bf0;border-radius:0 2px 2px 0}
-.msg-image-wrap.is-loading .msg-image-progress-bar{animation:zchatImgProgress 1.1s ease-in-out infinite}
-@keyframes zchatImgProgress{0%{width:8%}50%{width:70%}100%{width:92%}}
-.msg-image-wrap.is-done .msg-image-progress-bar{animation:none;width:100%;transition:width .2s ease}
-.msg-image-wrap.is-done .msg-image-progress{opacity:0;transition:opacity .35s ease .15s}
+.msg-image-wrap {
+  position: relative;
+  display: inline-block;
+  max-width: 260px;
+  overflow: hidden;
+  border-radius: 1rem;
+  line-height: 0;
+}
+.msg-image-wrap .msg-image,
+.msg-image-wrap .msg-reply-thumb {
+  display: block;
+  max-width: 260px;
+  max-height: 300px;
+  width: auto;
+  height: auto;
+  object-fit: cover;
+  transition: filter 0.35s ease, opacity 0.35s ease;
+}
+.msg-image-wrap.is-loading .msg-image,
+.msg-image-wrap.is-loading .msg-reply-thumb {
+  filter: blur(10px);
+  opacity: 0.65;
+}
+.msg-image-wrap:not(.is-loading) .msg-image,
+.msg-image-wrap:not(.is-loading) .msg-reply-thumb {
+  filter: none;
+  opacity: 1;
+}
+.msg-image-progress {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 3px;
+  background: rgba(0,0,0,0.25);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.msg-image-wrap.is-loading .msg-image-progress { opacity: 1; }
+.msg-image-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: #1c9bf0;
+  border-radius: 0 2px 2px 0;
+}
+.msg-image-wrap.is-loading .msg-image-progress-bar {
+  animation: zchatImgProgress 1.1s ease-in-out infinite;
+}
+@keyframes zchatImgProgress {
+  0% { width: 8%; }
+  50% { width: 70%; }
+  100% { width: 92%; }
+}
+.msg-image-wrap.is-done .msg-image-progress-bar {
+  animation: none;
+  width: 100%;
+  transition: width 0.2s ease;
+}
+.msg-image-wrap.is-done .msg-image-progress {
+  opacity: 0;
+  transition: opacity 0.35s ease 0.15s;
+}
 `;
     document.head.appendChild(s);
 }
@@ -84,11 +131,10 @@ function ensureMsgImageLoadStyle() {
 function markImgWrapLoading(img) {
     if (!img) return null;
     ensureMsgImageLoadStyle();
-    const isReply = img.classList.contains("msg-reply-thumb");
     let wrap = img.closest(".msg-image-wrap");
     if (!wrap) {
         wrap = document.createElement("div");
-        wrap.className = "msg-image-wrap is-loading" + (isReply ? " msg-image-wrap--reply" : "");
+        wrap.className = "msg-image-wrap is-loading";
         if (img.parentNode) img.parentNode.insertBefore(wrap, img);
         wrap.appendChild(img);
         const bar = document.createElement("div");
@@ -98,7 +144,6 @@ function markImgWrapLoading(img) {
     } else {
         wrap.classList.add("is-loading");
         wrap.classList.remove("is-done");
-        if (isReply) wrap.classList.add("msg-image-wrap--reply");
     }
     return wrap;
 }
@@ -110,21 +155,28 @@ function markImgWrapDone(img) {
     wrap.classList.remove("is-loading");
     const bar = wrap.querySelector(".msg-image-progress-bar");
     if (bar) bar.style.width = "100%";
-    setTimeout(() => { wrap.classList.remove("is-done"); }, 400);
+    setTimeout(() => {
+        wrap.classList.remove("is-done");
+    }, 400);
 }
 
+/** Gán src signed — không chặn UI; mỗi ảnh tự mờ → hiện */
 async function hydrateChatImages(root) {
     const scope = root || document;
     const nodes = Array.from(scope.querySelectorAll("img[data-chat-image-ref]"));
     if (!nodes.length) return;
     ensureMsgImageLoadStyle();
+
     await Promise.all(nodes.map(async (img) => {
         const ref = img.getAttribute("data-chat-image-ref");
         if (!ref) return;
         markImgWrapLoading(img);
         let url = null;
         try { url = await resolveChatImageUrl(ref); } catch (_) {}
-        if (!url) { markImgWrapDone(img); return; }
+        if (!url) {
+            markImgWrapDone(img);
+            return;
+        }
         await new Promise((resolve) => {
             let done = false;
             const finish = () => {
@@ -194,6 +246,10 @@ function hideChatFeedLoading() {
     if (el) el.remove();
 }
 
+/**
+ * Render chat nhanh — không chờ toàn bộ ảnh.
+ * Overlay tắt ngay; ảnh tự mờ + progress rồi hiện.
+ */
 async function renderMessagesUntilImagesReady(chat, opts) {
     opts = opts || {};
     opts.skipAutoHydrate = true;
@@ -202,13 +258,14 @@ async function renderMessagesUntilImagesReady(chat, opts) {
     if (typeof scrollMessageFeedToBottom === "function") {
         try { scrollMessageFeedToBottom(); } catch (_) {}
     }
-    hydrateChatImages(messageFeed).catch(() => {}).finally(() => {
-        if (typeof scrollMessageFeedToBottom === "function") {
-            try { scrollMessageFeedToBottom(); } catch (_) {}
-        }
-    });
+    hydrateChatImages(messageFeed)
+        .catch(() => {})
+        .finally(() => {
+            if (typeof scrollMessageFeedToBottom === "function") {
+                try { scrollMessageFeedToBottom(); } catch (_) {}
+            }
+        });
 }
-
 
 /** Cuộn messageFeed xuống tin cuối */
 function scrollMessageFeedToBottom() {
