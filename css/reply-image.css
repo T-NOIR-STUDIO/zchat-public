@@ -1,8 +1,8 @@
 /* ============================================================
  * 11-reply-image.css
- * Reply khi tin gốc là ẢNH — thumbnail + label (icon + tên) căn giữa.
+ * Khối trích dẫn Reply khi tin gốc là ẢNH (icon + tên file + thumbnail nhỏ).
  * ============================================================ */
-
+/* Reply ảnh: icon + tên mỏng + ảnh nhỏ, không kéo bubble */
 .msg-reply-quote--image {
     padding: 0 !important;
     background: transparent !important;
@@ -10,32 +10,19 @@
     border-left: none !important;
     width: fit-content;
     max-width: 96px;
+    margin-bottom: 0 !important;
     cursor: pointer;
     display: flex;
     flex-direction: column;
-    align-items: center; /* label + ảnh căn giữa theo trục ngang */
-    gap: 4px;
-    margin-bottom: 6px;
+    gap: 2px;
 }
-
-/* Tin mình: cả khối sát lề phải, nội dung vẫn center trong khối */
-#messageFeed .justify-end .msg-reply-quote--image {
-    margin-left: auto;
-    margin-right: 0;
-    align-items: center;
-}
-
 .msg-reply-image-head {
     display: flex;
     align-items: center;
-    justify-content: center; /* icon + tên giữa ảnh */
     gap: 4px;
-    width: 100%;
     max-width: 96px;
     min-width: 0;
-    text-align: center;
 }
-
 .msg-reply-image-icon {
     display: inline-flex;
     align-items: center;
@@ -43,13 +30,11 @@
     color: var(--muted);
     flex-shrink: 0;
 }
-
 .msg-reply-image-icon svg {
     display: block;
     width: 12px;
     height: 12px;
 }
-
 .msg-reply-image-name {
     font-size: 10px;
     font-weight: 400;
@@ -59,10 +44,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     min-width: 0;
-    max-width: 72px;
-    text-align: center;
 }
-
 .msg-reply-thumb {
     display: block;
     width: auto;
@@ -71,17 +53,15 @@
     max-height: 80px;
     object-fit: contain;
     border-radius: 12px;
-    border: 1px solid rgba(127, 127, 127, 0.35);
-    margin-left: auto;
-    margin-right: auto;
+    border: 1px solid rgba(127,127,127,0.35);
 }
-
 #messageFeed .msg-bubble-pressable,
 #messageFeed .rounded-bubble {
     width: fit-content;
     max-width: 100%;
 }
 
+/* Reply text name: không bold (fallback) */
 .msg-reply-quote > span:first-child {
     font-weight: 400 !important;
 }
