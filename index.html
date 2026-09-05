@@ -27,8 +27,10 @@
     <link rel="stylesheet" href="css/toast-screenshot.css">
     <link rel="stylesheet" href="css/verified-badge.css">
     <link rel="stylesheet" href="css/video-call.css">
+    <link rel="stylesheet" href="css/typing-indicator.css">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 
     <style id="appLoadingStyle">
@@ -837,7 +839,10 @@
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
     window.ZCHAT_SIGNAL_URL = localStorage.getItem("zchat_signal_url") || "https://zchat-backend-call.onrender.com";
+    window.ZCHAT_ONESIGNAL_APP_ID = "1f98bdd6-e7b6-411b-ac0f-b10f748226cc";
 </script>
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script src="modules/onesignal-push.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
 <script src="https://unpkg.com/qrcode@1.5.4/build/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -865,6 +870,7 @@
 <script src="modules/messages-io.js"></script>
 <script src="modules/chat-image-upload.js"></script>
 <script src="modules/realtime.js"></script>
+<script src="modules/typing-indicator.js"></script>
 <script src="modules/bootstrap.js"></script>
 </body>
 </html>
