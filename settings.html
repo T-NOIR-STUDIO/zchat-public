@@ -84,54 +84,6 @@
 
             <div class="space-y-6 sm:space-y-8">
 
-                <!-- 1. PRIVACY & CALLS -->
-                <section class="space-y-3">
-                    <div class="flex items-center gap-2 px-1">
-                        <i data-lucide="shield-check" class="w-4 h-4" style="color: var(--faint);"></i>
-                        <h2 id="secPrivacyTitle" class="text-xs font-bold uppercase tracking-wider" style="color: var(--faint);">Privacy & Permissions</h2>
-                    </div>
-
-                    <div class="rounded-2xl sm:rounded-3xl p-4 sm:p-6 divide-y" style="background-color: var(--surface); border: 1px solid var(--hairline); divide-color: var(--hairline);">
-
-                        <!-- Voice Calls -->
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 sm:pb-5 gap-3 sm:gap-4 min-h-[64px]">
-                            <div class="space-y-1 pr-0 sm:pr-4">
-                                <p id="lblStrangerCalls" class="text-sm font-bold" style="color: var(--ink);">Allow calls from strangers</p>
-                                <p id="lblStrangerCallsDesc" class="text-xs leading-relaxed" style="color: var(--muted);">Let people not in your contacts start voice calls with you.</p>
-                            </div>
-                            <label class="relative inline-flex items-center cursor-pointer shrink-0 self-start sm:self-center">
-                                <input type="checkbox" id="toggleCalls" class="sr-only peer">
-                                <div class="w-11 h-6 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 bg-zinc-700"></div>
-                            </label>
-                        </div>
-
-                        <!-- Video Calls -->
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between py-4 sm:py-5 gap-3 sm:gap-4 min-h-[64px]">
-                            <div class="space-y-1 pr-0 sm:pr-4">
-                                <p id="lblStrangerVideo" class="text-sm font-bold" style="color: var(--ink);">Allow video calls from strangers</p>
-                                <p id="lblStrangerVideoDesc" class="text-xs leading-relaxed" style="color: var(--muted);">Let non-contacts invite you to video conversations.</p>
-                            </div>
-                            <label class="relative inline-flex items-center cursor-pointer shrink-0 self-start sm:self-center">
-                                <input type="checkbox" id="toggleVideoCalls" class="sr-only peer">
-                                <div class="w-11 h-6 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 bg-zinc-700"></div>
-                            </label>
-                        </div>
-
-                        <!-- Message Requests -->
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between pt-4 sm:pt-5 gap-3 sm:gap-4 min-h-[64px]">
-                            <div class="space-y-1 pr-0 sm:pr-4">
-                                <p id="lblMsgRequests" class="text-sm font-bold" style="color: var(--ink);">Message Requests</p>
-                                <p id="lblMsgRequestsDesc" class="text-xs leading-relaxed" style="color: var(--muted);">Filter messages from unknown users into a separate request folder.</p>
-                            </div>
-                            <label class="relative inline-flex items-center cursor-pointer shrink-0 self-start sm:self-center">
-                                <input type="checkbox" id="toggleMsgRequests" class="sr-only peer" checked>
-                                <div class="w-11 h-6 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 bg-zinc-700"></div>
-                            </label>
-                        </div>
-
-                    </div>
-                </section>
-
                 <!-- 2. GENERAL & PREFERENCES -->
                 <section class="space-y-3">
                     <div class="flex items-center gap-2 px-1">
@@ -244,7 +196,7 @@
                 <p id="appVersionLabel"
                    class="text-center select-none"
                    style="font-size: 11px; color: var(--faint); letter-spacing: 0.02em; margin-top: 4px; padding-bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 72px));">
-                    2.73.5-prod.01
+                    5.3.8-prod.01
                 </p>
 
             </div>
