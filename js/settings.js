@@ -421,18 +421,26 @@
             const lang = languageSelect.value || "en";
             const dict = i18n[lang] || i18n.en;
             const label = document.getElementById("settingsCopyLabel");
-            const icon = document.getElementById("settingsCopyIcon");
-            if (label) label.textContent = dict.copied;
-            if (icon) {
-                icon.setAttribute("data-lucide", "check");
-                if (window.lucide) window.lucide.createIcons();
-            }
-            setTimeout(() => {
-                if (label) label.textContent = dict.copy;
-                if (icon) {
-                    icon.setAttribute("data-lucide", "copy");
-                    if (window.lucide) window.lucide.createIcons();
+
+            // Chỉ đổi icon (check ↔ copy), giữ class gốc — không đụng layout nút
+            function setCopyIcon(name) {
+                var el = document.getElementById("settingsCopyIcon");
+                if (!el) return;
+                var i = document.createElement("i");
+                i.id = "settingsCopyIcon";
+                i.className = "w-3.5 h-3.5";
+                i.setAttribute("data-lucide", name);
+                el.replaceWith(i);
+                if (window.lucide && typeof window.lucide.createIcons === "function") {
+                    window.lucide.createIcons();
                 }
+            }
+
+            if (label) label.textContent = dict.copied;
+            setCopyIcon("check");
+            setTimeout(function () {
+                if (label) label.textContent = dict.copy;
+                setCopyIcon("copy");
             }, 1500);
         });
     }
