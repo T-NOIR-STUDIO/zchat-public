@@ -152,9 +152,6 @@
     const profileAvatar = document.getElementById("profileAvatar");
     const languageSelect = document.getElementById("languageSelect");
     const themeSelect = document.getElementById("themeSelect");
-    const toggleCalls = document.getElementById("toggleCalls");
-    const toggleVideoCalls = document.getElementById("toggleVideoCalls");
-    const toggleMsgRequests = document.getElementById("toggleMsgRequests");
     const saveBtn = document.getElementById("saveBtn");
     const toast = document.getElementById("toast");
     const toastMsg = document.getElementById("toastMsg");
@@ -190,24 +187,120 @@
             .join("");
     }
 
-    function loadProfileData() {
-        const username = localStorage.getItem("zchat_username") || "Guest";
-        const avatarType = localStorage.getItem("zchat_avatar_type") || "initials";
-        const avatarColor = localStorage.getItem("zchat_avatar_color") || colorFor(username);
-        const avatarEmoji = localStorage.getItem("zchat_avatar_emoji") || "😀";
-        const avatarUrl = localStorage.getItem("zchat_avatar_url") || "";
+    /* ---- Avatar display (giống ui-helpers / avatar-pin-clear): signed URL + cache ---- */
+    const _avCache = Object.create(null);
+    const _avInflight = Object.create(null);
+    const AV_TTL = 6 * 24 * 3600 * 1000;
+
+    function parseAvatarStoragePath(ref) {
+        if (!ref) return null;
+        const s = String(ref).trim();
+        if (s.startsWith("storage:avatars/")) return s.slice("storage:avatars/".length).split("?")[0];
+        if (s.startsWith("storage:")) {
+            const rest = s.slice(8);
+            const i = rest.indexOf("/");
+            if (i > 0 && rest.slice(0, i) === "avatars") return rest.slice(i + 1).split("?")[0];
+        }
+        const pub = s.match(/\/storage\/v1\/object\/public\/avatars\/(.+?)(?:\?|$)/);
+        if (pub) return decodeURIComponent(pub[1]);
+        const sig = s.match(/\/storage\/v1\/object\/sign\/avatars\/(.+?)(?:\?|$)/);
+        if (sig) return decodeURIComponent(sig[1]);
+        return null;
+    }
+
+    function getCachedAvatarUrl(ref) {
+        const key = parseAvatarStoragePath(ref) || String(ref || "").trim();
+        if (!key) return null;
+        const hit = _avCache[key];
+        if (hit && hit.url && hit.exp > Date.now()) return hit.url;
+        try {
+            const raw = sessionStorage.getItem("zchat_avurl_" + key);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed && parsed.url && parsed.exp > Date.now()) {
+                    _avCache[key] = parsed;
+                    return parsed.url;
+                }
+            }
+        } catch (_) {}
+        return null;
+    }
+
+    function setCachedAvatarUrl(ref, url) {
+        const key = parseAvatarStoragePath(ref) || String(ref || "").trim();
+        if (!key || !url) return;
+        const entry = { url, exp: Date.now() + AV_TTL };
+        _avCache[key] = entry;
+        try { sessionStorage.setItem("zchat_avurl_" + key, JSON.stringify(entry)); } catch (_) {}
+    }
+
+    async function resolveAvatarDisplayUrl(ref) {
+        if (!ref) return null;
+        const s = String(ref).trim();
+        if (/^https?:\/\//i.test(s) && !parseAvatarStoragePath(s)) return s;
+        const cached = getCachedAvatarUrl(s);
+        if (cached) return cached;
+        const path = parseAvatarStoragePath(s);
+        if (!path || !window.supabaseClient) {
+            return /^https?:\/\//i.test(s) ? s : null;
+        }
+        if (_avInflight[path]) return _avInflight[path];
+        _avInflight[path] = (async () => {
+            try {
+                const { data, error } = await window.supabaseClient.storage
+                    .from("avatars")
+                    .createSignedUrl(path, 3600 * 24 * 7);
+                if (!error && data && data.signedUrl) {
+                    setCachedAvatarUrl(s, data.signedUrl);
+                    return data.signedUrl;
+                }
+            } catch (e) {
+                console.warn("[ZChat] avatar signed URL:", e);
+            } finally {
+                delete _avInflight[path];
+            }
+            return /^https?:\/\//i.test(s) ? s : null;
+        })();
+        return _avInflight[path];
+    }
+
+    function renderProfileAvatarEl(el, opts) {
+        if (!el) return;
+        const username = opts.username || "Guest";
+        const avatarType = opts.avatarType || "initials";
+        const avatarColor = opts.avatarColor || colorFor(username);
+        const avatarEmoji = opts.avatarEmoji || "😀";
+        const avatarUrl = opts.avatarUrl || "";
 
         if (avatarType === "photo" && avatarUrl) {
-            profileAvatar.style.backgroundColor = "var(--elevated2)";
-            profileAvatar.innerHTML = `<img src="${avatarUrl}" alt="Avatar" class="h-full w-full rounded-full object-cover" />`;
+            el.style.backgroundColor = "var(--elevated2)";
+            const instant = getCachedAvatarUrl(avatarUrl);
+            el.innerHTML = '<img src="' + (instant || "") + '" alt="Avatar" class="h-full w-full rounded-full object-cover" loading="lazy" decoding="async" />';
+            if (!instant) {
+                resolveAvatarDisplayUrl(avatarUrl).then((url) => {
+                    const img = el.querySelector("img");
+                    if (img && url) img.src = url;
+                }).catch(() => {});
+            }
         } else if (avatarType === "emoji") {
-            profileAvatar.style.backgroundColor = "var(--elevated2)";
-            profileAvatar.textContent = avatarEmoji;
+            el.style.backgroundColor = "var(--elevated2)";
+            el.textContent = avatarEmoji;
         } else {
-            profileAvatar.style.backgroundColor = avatarColor;
-            profileAvatar.style.color = "var(--avatar-text)";
-            profileAvatar.textContent = initials(username);
+            el.style.backgroundColor = avatarColor;
+            el.style.color = "var(--avatar-text)";
+            el.textContent = initials(username);
         }
+    }
+
+    function loadProfileData() {
+        if (!profileAvatar) return;
+        renderProfileAvatarEl(profileAvatar, {
+            username: localStorage.getItem("zchat_username") || "Guest",
+            avatarType: localStorage.getItem("zchat_avatar_type") || "initials",
+            avatarColor: localStorage.getItem("zchat_avatar_color") || null,
+            avatarEmoji: localStorage.getItem("zchat_avatar_emoji") || "😀",
+            avatarUrl: localStorage.getItem("zchat_avatar_url") || "",
+        });
     }
 
     /** Avatar theo tài khoản — lấy từ Supabase khi mở Settings */
@@ -235,13 +328,6 @@
         const dict = i18n[lang] || i18n.en;
         document.getElementById("txtTitle").textContent = dict.title;
         document.getElementById("txtSubtitle").textContent = dict.subtitle;
-        document.getElementById("secPrivacyTitle").textContent = dict.secPrivacy;
-        document.getElementById("lblStrangerCalls").textContent = dict.strangerCalls;
-        document.getElementById("lblStrangerCallsDesc").textContent = dict.strangerCallsDesc;
-        document.getElementById("lblStrangerVideo").textContent = dict.strangerVideo;
-        document.getElementById("lblStrangerVideoDesc").textContent = dict.strangerVideoDesc;
-        document.getElementById("lblMsgRequests").textContent = dict.msgRequests;
-        document.getElementById("lblMsgRequestsDesc").textContent = dict.msgRequestsDesc;
         document.getElementById("secGeneralTitle").textContent = dict.secGeneral;
         document.getElementById("lblLanguage").textContent = dict.language;
         document.getElementById("lblLanguageDesc").textContent = dict.languageDesc;
@@ -300,16 +386,9 @@
     function loadSettings() {
         const savedTheme = localStorage.getItem("zchat_theme") || "dark";
         const savedLang = localStorage.getItem("zchat_lang") || "en";
-        const allowCalls = localStorage.getItem("zchat_allow_calls") === "true";
-        const allowVideo = localStorage.getItem("zchat_allow_video") === "true";
-        const msgRequests = localStorage.getItem("zchat_msg_requests") !== "false";
-
         document.documentElement.setAttribute("data-theme", savedTheme);
         themeSelect.value = savedTheme;
         languageSelect.value = savedLang;
-        toggleCalls.checked = allowCalls;
-        toggleVideoCalls.checked = allowVideo;
-        toggleMsgRequests.checked = msgRequests;
 
         applyLanguage(savedLang);
         loadRecoveryPassword(savedLang);
@@ -362,9 +441,6 @@
         const currentLang = languageSelect.value;
         localStorage.setItem("zchat_theme", themeSelect.value);
         localStorage.setItem("zchat_lang", currentLang);
-        localStorage.setItem("zchat_allow_calls", toggleCalls.checked);
-        localStorage.setItem("zchat_allow_video", toggleVideoCalls.checked);
-        localStorage.setItem("zchat_msg_requests", toggleMsgRequests.checked);
 
         showToast(i18n[currentLang].savedAlert);
     });
